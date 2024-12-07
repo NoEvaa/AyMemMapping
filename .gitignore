@@ -1,0 +1,8 @@
+build/
+
+# Visual Studio
+.vs/
+.vscode/
+
+# Cashe
+.cache/
