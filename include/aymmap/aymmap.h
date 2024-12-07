@@ -16,5 +16,9 @@
 #pragma once
 
 #include "aymmap/config.h"
-#include "aymmap/global.h"
+#include "aymmap/global.hpp"
+
+namespace iin {
+using namespace aymmap;
+}
 
