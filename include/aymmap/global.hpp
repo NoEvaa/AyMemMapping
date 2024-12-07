@@ -20,6 +20,10 @@
 
 #include "aymmap/config.h"
 
+#if defined(_WIN32) || defined(__WIN32__) || defined(WIN32) || defined(__NT__)
+#define _AYMMAP_WIN
+#endif
+
 #define _AYMMAP_DECL_ENUM_OP(_enum_tp)                                                             \
 inline constexpr _enum_tp operator|(_enum_tp lhs, _enum_tp rhs) {                                  \
     return static_cast<_enum_tp>(                                                                  \
@@ -53,6 +57,8 @@ enum class AccessFlag : std::uint32_t {
 };
 _AYMMAP_DECL_ENUM_OP(AccessFlag)
 
+enum class ProtectFlag : std::uint32_t {};
+_AYMMAP_DECL_ENUM_OP(ProtectFlag)
 }
 
 #undef _AYMMAP_DECL_ENUM_OP

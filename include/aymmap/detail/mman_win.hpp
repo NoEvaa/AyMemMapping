@@ -15,10 +15,12 @@
  */
 #pragma once
 
-#include "aymmap/config.h"
 #include "aymmap/global.hpp"
 
-namespace iin {
-//using namespace aymmap;
+#ifndef _AYMMAP_WIN
+#error unreachable
+#endif
+
+namespace aymmap {
 }
 
