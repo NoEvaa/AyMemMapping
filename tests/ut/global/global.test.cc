@@ -26,5 +26,8 @@ TEST_CASE("access flag") {
     CHECK(!bool(AccessFlag::kWrite & AccessFlag::kCopy));
     CHECK(!bool(AccessFlag::kWrite & AccessFlag::kExec));
     CHECK(!bool(AccessFlag::kCopy & AccessFlag::kExec));
+    CHECK(AccessFlag::kWriteCopy == (AccessFlag::kCopy | AccessFlag::kWrite));
+    CHECK(AccessFlag::kReadExec == (AccessFlag::kExec | AccessFlag::kRead));
+    CHECK(AccessFlag::kWrite == (AccessFlag::kWriteCopy ^ AccessFlag::kCopy));
 }
 

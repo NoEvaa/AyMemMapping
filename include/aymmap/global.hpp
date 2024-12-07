@@ -31,6 +31,11 @@ inline constexpr _enum_tp operator&(_enum_tp lhs, _enum_tp rhs) {               
         static_cast<std::underlying_type_t<_enum_tp>>(lhs) &                                       \
         static_cast<std::underlying_type_t<_enum_tp>>(rhs));                                       \
 }                                                                                                  \
+inline constexpr _enum_tp operator^(_enum_tp lhs, _enum_tp rhs) {                                  \
+    return static_cast<_enum_tp>(                                                                  \
+        static_cast<std::underlying_type_t<_enum_tp>>(lhs) ^                                       \
+        static_cast<std::underlying_type_t<_enum_tp>>(rhs));                                       \
+}                                                                                                  \
 inline constexpr _enum_tp operator~(_enum_tp e) {                                                  \
     return static_cast<_enum_tp>(~static_cast<std::underlying_type_t<_enum_tp>>(e));               \
 }                                                                                                  \
@@ -42,7 +47,9 @@ enum class AccessFlag : std::uint32_t {
     kCopy  = 0x0004,
     kExec  = 0x0008,
 
-    kDefault = kWrite,
+    kWriteCopy = kWrite | kCopy,
+    kReadExec  = kRead | kExec,
+    kDefault   = kWrite,
 };
 _AYMMAP_DECL_ENUM_OP(AccessFlag)
 
