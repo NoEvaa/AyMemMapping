@@ -14,9 +14,17 @@
  * limitations under the License.
  */
 #include "testlib.h"
+#include "aymmap/global.hpp"
 
-//using namespace iin;
+using namespace aymmap;
 
-TEST_CASE("aaa") {
+TEST_CASE("access flag") {
+    CHECK(AccessFlag::kRead & AccessFlag::kRead);
+    CHECK(AccessFlag::kRead & AccessFlag::kWrite);
+    CHECK(AccessFlag::kRead & AccessFlag::kWrite);
+    CHECK((~AccessFlag::kRead) & AccessFlag::kWrite);
+    CHECK(!bool(AccessFlag::kWrite & AccessFlag::kCopy));
+    CHECK(!bool(AccessFlag::kWrite & AccessFlag::kExec));
+    CHECK(!bool(AccessFlag::kCopy & AccessFlag::kExec));
 }
 

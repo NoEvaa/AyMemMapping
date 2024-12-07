@@ -16,16 +16,24 @@
 #pragma once
 
 #include <cstdint>
+#include <type_traits>
 
 #include "aymmap/config.h"
 
-#define _AYMMAP_DECL_ENUM_OP(_enum_tp, _underly_tp)                                                \
+#define _AYMMAP_DECL_ENUM_OP(_enum_tp)                                                             \
 inline constexpr _enum_tp operator|(_enum_tp lhs, _enum_tp rhs) {                                  \
-    return static_cast<_enum_tp>(static_cast<_underly_tp>(lhs) | static_cast<_underly_tp>(rhs));   \
+    return static_cast<_enum_tp>(                                                                  \
+        static_cast<std::underlying_type_t<_enum_tp>>(lhs) |                                       \
+        static_cast<std::underlying_type_t<_enum_tp>>(rhs));                                       \
 }                                                                                                  \
 inline constexpr _enum_tp operator&(_enum_tp lhs, _enum_tp rhs) {                                  \
-    return static_cast<_enum_tp>(static_cast<_underly_tp>(lhs) & static_cast<_underly_tp>(rhs));   \
-}
+    return static_cast<_enum_tp>(                                                                  \
+        static_cast<std::underlying_type_t<_enum_tp>>(lhs) &                                       \
+        static_cast<std::underlying_type_t<_enum_tp>>(rhs));                                       \
+}                                                                                                  \
+inline constexpr _enum_tp operator~(_enum_tp e) {                                                  \
+    return static_cast<_enum_tp>(~static_cast<std::underlying_type_t<_enum_tp>>(e));               \
+}                                                                                                  \
 
 namespace aymmap {
 enum class AccessFlag : std::uint32_t {
@@ -36,7 +44,8 @@ enum class AccessFlag : std::uint32_t {
 
     kDefault = kWrite,
 };
-_AYMMAP_DECL_ENUM_OP(AccessFlag, std::uint32_t)
+_AYMMAP_DECL_ENUM_OP(AccessFlag)
+
 }
 
 #undef _AYMMAP_DECL_ENUM_OP
