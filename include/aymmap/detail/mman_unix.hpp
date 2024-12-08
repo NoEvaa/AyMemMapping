@@ -46,8 +46,8 @@ constexpr MemMapData::handle_type kInvalidHandle = INVALID_HANDLE_VALUE;
 struct MemMapTraits {
     using handle_type = MemMapData::handle_type;
 
-    static auto pageSize() {
-        return sysconf(_SC_PAGE_SIZE);
+    static std::size_t pageSize() {
+        return static_cast<std::size_t>(sysconf(_SC_PAGE_SIZE));
     }
 
     static std::int64_t alignPageSize(std::int64_t sz) {

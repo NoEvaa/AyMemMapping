@@ -21,12 +21,15 @@
 #error unreachable
 #endif
 
+#include <windows.h>
+
 namespace aymmap {
 struct MemMapData {
     using handle_type = HANDLE;
 
-    handle_type  handle_ = INVALID_HANDLE_VALUE;
-    void *       p_data_ = nullptr;
+    handle_type  handle_     = INVALID_HANDLE_VALUE;
+    handle_type  map_handle_ = INVALID_HANDLE_VALUE;
+    void *       p_data_     = nullptr;
     std::int64_t offset_{};
     std::size_t  length_{};
 };
@@ -36,7 +39,13 @@ constexpr MemMapData::handle_type kInvalidHandle = INVALID_HANDLE_VALUE;
 struct MemMapTraits {
     using handle_type = MemMapData::handle_type;
 
-    static auto pageSize() {
+    static std::size_t pageSize() {
+        static const std::size_t psz = [] {
+            SYSTEM_INFO si;
+            GetSystemInfo(&si);
+            return si.dwAllocationGranularity;
+        }
+        return psz;
     }
 
     static std::int64_t alignPageSize(std::int64_t sz) {
@@ -47,9 +56,13 @@ struct MemMapTraits {
     }
 
     static decltype(auto) closeFile(handle_type handle) {
+        //return CloseHandle(handle);
     }
 
     static std::size_t fileSize(handle_type handle) {
+        LARGE_INTEGER file_sz{};
+        if(GetFileSizeEx(handle, &file_sz) == 0) { return 0U; }
+        return static_cast<std::size_t>(file_sz.QuadPart);
     }
 
     /**
