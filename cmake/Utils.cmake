@@ -2,6 +2,22 @@
 # 
 
 # ==================================================
+# Set the minimum C++ standard.
+#
+# ex.
+#     SET_MINI_CXX_STANDARD(20)
+#
+macro(SET_MINI_CXX_STANDARD cxx_ver)
+    if(DEFINED CMAKE_CXX_STANDARD)
+        if(CMAKE_CXX_STANDARD LESS ${cxx_ver})
+            set(CMAKE_CXX_STANDARD ${cxx_ver})
+        endif()
+    else()
+        set(CMAKE_CXX_STANDARD ${cxx_ver})
+    endif()
+endmacro()
+
+# ==================================================
 # Get subdirectories of current path.
 #
 # ex.
