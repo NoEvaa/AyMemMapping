@@ -109,7 +109,24 @@ struct MemMapTraits {
      */
     static bool protect(void * addr, std::size_t length, ProtectFlag prot_flag) {
         int prot{};
-        return mprotect(addr, length, prot) == -1;
+        return mprotect(addr, length, prot) != -1;
+    }
+
+    static bool sync(void * addr, std::size_t length) {
+        return msync(addr, length, MS_SYNC) != -1;
+    }
+
+    static bool remap(MemMapData & d, std::size_t new_length) {
+        void * p_newmap = nullptr;
+#ifdef MREMAP_MAYMOVE
+        p_newmap = mremap(d.p_data_, d.length_, new_length, MREMAP_MAYMOVE);
+#else
+        p_newmap = mremap(d.p_data_, d.length_, new_length, 0);
+#endif
+        if (p_newmap == (void *)-1) { return false; }
+        d.p_data_ = p_newmap;
+        d.length_ = new_length;
+        return true;
     }
 };
 }
