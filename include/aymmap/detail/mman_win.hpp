@@ -22,5 +22,56 @@
 #endif
 
 namespace aymmap {
+struct MemMapData {
+    using handle_type = HANDLE;
+
+    handle_type  handle_ = INVALID_HANDLE_VALUE;
+    void *       p_data_ = nullptr;
+    std::int64_t offset_{};
+    std::size_t  length_{};
+};
+
+constexpr MemMapData::handle_type kInvalidHandle = INVALID_HANDLE_VALUE;
+
+struct MemMapTraits {
+    using handle_type = MemMapData::handle_type;
+
+    static auto pageSize() {
+    }
+
+    static std::int64_t alignPageSize(std::int64_t sz) {
+        return sz & (~(pageSize() - 1));
+    }
+
+    static handle_type openFile(char const * path, AccessFlag access) {
+    }
+
+    static decltype(auto) closeFile(handle_type handle) {
+    }
+
+    static std::size_t fileSize(handle_type handle) {
+    }
+
+    /**
+     */
+    static bool map(MemMapData & d, AccessFlag access, std::size_t length, std::int64_t offset) {
+        return true;
+    }
+
+    static bool unmap(MemMapData & d) {
+    }
+
+    static bool lock(void * addr, std::size_t length) {
+    }
+
+    static bool unlock(void * addr, std::size_t length) {
+    }
+
+    /**
+     */
+    static bool protect(void * addr, std::size_t length, ProtectFlag prot_flag) {
+    }
+};
 }
+
 
