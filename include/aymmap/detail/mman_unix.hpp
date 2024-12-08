@@ -17,14 +17,12 @@
 
 #include "aymmap/global.hpp"
 
-#include <bits/sysconf.h>
-#include <cstdint>
-#include <cstdio>
-
 #ifdef _AYMMAP_WIN
 #error unreachable
 #endif
 
+#include <cstdint>
+#include <cstdio>
 #include <unistd.h>
 #include <sys/mman.h>
 #include <sys/stat.h>
@@ -34,49 +32,87 @@
 #endif
 
 namespace aymmap {
-using FileHandle = int;
-
-constexpr FileHandle kInvalidHandle = INVALID_HANDLE_VALUE;
-
-namespace detail {
-inline int getPageSize() {
-    return sysconf(_SC_PAGE_SIZE);
-}
-}
-
 struct MemMapData {
-    void *      p_data_ = nullptr;
-    FileHandle  handle_ = kInvalidHandle;
-    std::size_t length_{};
-    std::size_t mapped_length_{};
+    using handle_type = int;
+
+    handle_type  handle_ = INVALID_HANDLE_VALUE;
+    void *       p_data_ = nullptr;
+    std::int64_t offset_{};
+    std::size_t  length_{};
 };
 
+constexpr MemMapData::handle_type kInvalidHandle = INVALID_HANDLE_VALUE;
+
 struct MemMapTraits {
+    using handle_type = MemMapData::handle_type;
+
+    static auto pageSize() {
+        return sysconf(_SC_PAGE_SIZE);
+    }
+
+    static std::int64_t alignPageSize(std::int64_t sz) {
+        return sz & (~(pageSize() - 1));
+    }
+
+    static handle_type openFile(char const * path, AccessFlag access) {
+        return open(path, bool(access & AccessFlag::_kWrite) ? O_RDWR : O_RDONLY);
+    }
+
+    static decltype(auto) closeFile(handle_type handle) {
+        return close(handle);
+    }
+
+    static std::size_t fileSize(handle_type handle) {
+        struct stat st;
+        if (fstat(handle, &st) == -1) { return 0U; }
+        return static_cast<std::size_t>(st.st_size);
+    }
+
     /**
      * https://man7.org/linux/man-pages/man2/mmap.2.html
      */
-    bool map(MemMapData & d, int64_t offset) {
-        size_t length{};
-        size_t mapped_length{};
+    static bool map(MemMapData & d, AccessFlag access, std::size_t length, std::int64_t offset) {
         int prot{};
         int flags{};
-        off_t aligned_offset{};
-        d.p_data_ = mmap(NULL, mapped_length, prot, flags, d.handle_, aligned_offset);
-        
+
+        if (bool(access & AccessFlag::kRead)) { prot |= PROT_READ; }
+        if (bool(access & AccessFlag::_kWrite)) { prot |= PROT_WRITE; }
+        if (bool(access & AccessFlag::kExec)) { prot |= PROT_EXEC; }
+        flags = bool(access & AccessFlag::kCopy) ? MAP_PRIVATE : MAP_SHARED;
+        if (d.handle_ == kInvalidHandle) { flags |= MAP_ANONYMOUS; }
+
+        int64_t aligned_offset = alignPageSize(offset);
+        int64_t mapped_length  = offset - aligned_offset + length;
+
+        void * p_map = mmap(NULL, mapped_length, prot, flags, d.handle_, aligned_offset);
+        if (p_map == MAP_FAILED) { return false; }
+        d.p_data_ = p_map;
+        d.offset_ = offset;
+        d.length_ = mapped_length;
         return true;
     }
 
-    bool unmap(MemMapData & d) {
-        if (!d.p_data_)
-        {
-            return true;
-        }
+    /**
+     * https://man7.org/linux/man-pages/man2/munmap.2.html
+     */
+    static bool unmap(MemMapData & d) {
         return munmap(d.p_data_, d.length_) != -1;
     }
 
-    void protect(MemMapData & d) {}
-    void lock(MemMapData & d) {}
-    void unlock(MemMapData & d) {}
+    /**
+     */
+    static void lock(MemMapData & d) {}
+
+    /**
+     * https://man7.org/linux/man-pages/man2/munlock.2.html
+     */
+    static void unlock(MemMapData & d) {
+        munlock(d.p_data_, d.length_);
+    }
+
+    /**
+     */
+    static void protect(MemMapData & d) {}
 };
 }
 

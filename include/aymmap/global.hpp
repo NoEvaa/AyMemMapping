@@ -46,10 +46,11 @@ inline constexpr _enum_tp operator~(_enum_tp e) {                               
 
 namespace aymmap {
 enum class AccessFlag : std::uint32_t {
-    kRead  = 0x0001,
-    kWrite = 0x0002 | kRead,
-    kCopy  = 0x0004,
-    kExec  = 0x0008,
+    kRead   = 0x0001,
+    _kWrite = 0x0002,
+    kWrite  = _kWrite | kRead,
+    kCopy   = 0x0004,
+    kExec   = 0x0008,
 
     kWriteCopy = kWrite | kCopy,
     kReadExec  = kRead | kExec,
