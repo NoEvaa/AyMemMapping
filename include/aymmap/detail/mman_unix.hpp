@@ -92,27 +92,25 @@ struct MemMapTraits {
         return true;
     }
 
-    /**
-     * https://man7.org/linux/man-pages/man2/munmap.2.html
-     */
     static bool unmap(MemMapData & d) {
         return munmap(d.p_data_, d.length_) != -1;
     }
 
-    /**
-     */
-    static void lock(MemMapData & d) {}
+    static bool lock(void * addr, std::size_t length) {
+        return mlock(addr, length) != -1;
+    }
 
-    /**
-     * https://man7.org/linux/man-pages/man2/munlock.2.html
-     */
-    static void unlock(MemMapData & d) {
-        munlock(d.p_data_, d.length_);
+    static bool unlock(void * addr, std::size_t length) {
+        return munlock(addr, length) != -1;
     }
 
     /**
+     * https://man7.org/linux/man-pages/man2/mprotect.2.html
      */
-    static void protect(MemMapData & d) {}
+    static bool protect(void * addr, std::size_t length, ProtectFlag prot_flag) {
+        int prot{};
+        return mprotect(addr, length, prot) == -1;
+    }
 };
 }
 
