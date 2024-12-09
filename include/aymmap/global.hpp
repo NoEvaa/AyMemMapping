@@ -17,6 +17,7 @@
 
 #include <cstdint>
 #include <type_traits>
+#include <filesystem>
 
 #include "aymmap/config.h"
 
@@ -45,6 +46,8 @@ inline constexpr _enum_tp operator~(_enum_tp e) {                               
 }                                                                                                  \
 
 namespace aymmap {
+namespace fs = std::filesystem;
+
 enum class AccessFlag : std::uint32_t {
     kRead   = 0x0001,
     _kWrite = 0x0002,

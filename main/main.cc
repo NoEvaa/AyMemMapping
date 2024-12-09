@@ -2,7 +2,7 @@
 #include <cstdint>
 #include <iostream>
 #include <unistd.h>
-#include "aymmap/detail/mman_unix.hpp"
+#include "aymmap/mman.hpp"
 
 //using namespace iin;
 
