@@ -38,10 +38,9 @@ namespace aymmap {
 struct MemMapData {
     using handle_type = int;
 
-    handle_type  handle_ = INVALID_HANDLE_VALUE;
-    void *       p_data_ = nullptr;
-    std::int64_t offset_{};
-    std::size_t  length_{};
+    handle_type handle_ = INVALID_HANDLE_VALUE;
+    void *      p_data_ = nullptr;
+    std::size_t length_{};
 };
 
 constexpr MemMapData::handle_type kInvalidHandle = INVALID_HANDLE_VALUE;
@@ -115,7 +114,6 @@ bool MemMapTraits::map(data_type & d, AccessFlag access, size_type length, off_t
     void * p_map = ::mmap(NULL, length, prot, flags, d.handle_, offset);
     if (p_map == MAP_FAILED) { return false; }
     d.p_data_ = p_map;
-    d.offset_ = offset;
     d.length_ = length;
     return true;
 }
@@ -124,7 +122,6 @@ template <>
 bool MemMapTraits::unmap(data_type & d) {
     if (::munmap(d.p_data_, d.length_) == -1) { return false; }
     d.p_data_ = nullptr;
-    d.offset_ = 0;
     d.length_ = 0;
     return true;
 }
