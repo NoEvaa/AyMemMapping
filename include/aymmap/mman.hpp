@@ -15,6 +15,8 @@
  */
 #pragma once
 
+#include <system_error>
+
 #include "aymmap/global.hpp"
 
 namespace aymmap {
@@ -27,9 +29,12 @@ struct BasicMemMapTraits {
     using path_type   = fs::path;
     using path_cref   = path_type const &;
 
-    static std::size_t pageSize();
+    static std::error_code lastError();
 
-    static std::size_t fileSize(handle_type);
+    static size_type pageSize();
+
+    static size_type fileSize(handle_type);
+    static handle_type filenoToHandle(int fd);
     static handle_type openFile(path_cref, AccessFlag);
     static bool closeFile(handle_type);
     static bool removeFile(path_cref);

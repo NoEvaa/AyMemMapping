@@ -24,6 +24,7 @@
 #include <cstdint>
 #include <cstdio>
 #include <unistd.h>
+#include <system_error>
 #include <sys/mman.h>
 #include <sys/stat.h>
 
@@ -47,6 +48,13 @@ constexpr MemMapData::handle_type kInvalidHandle = INVALID_HANDLE_VALUE;
 using MemMapTraits = BasicMemMapTraits<MemMapData>;
 
 template <>
+std::error_code MemMapTraits::lastError() {
+    std::error_code ec;
+    ec.assign(errno, std::system_category());
+    return ec;
+}
+
+template <>
 MemMapTraits::size_type MemMapTraits::pageSize() {
     return static_cast<size_type>(::sysconf(_SC_PAGE_SIZE));
 }
@@ -56,6 +64,11 @@ MemMapTraits::size_type MemMapTraits::fileSize(handle_type handle) {
     struct stat st;
     if (::fstat(handle, &st) == -1) { return 0U; }
     return static_cast<std::size_t>(st.st_size);
+}
+
+template <>
+MemMapTraits::handle_type MemMapTraits::filenoToHandle(int fd) {
+    return fd;
 }
 
 template <>
@@ -109,7 +122,11 @@ bool MemMapTraits::map(data_type & d, AccessFlag access, size_type length, off_t
 
 template <>
 bool MemMapTraits::unmap(data_type & d) {
-    return ::munmap(d.p_data_, d.length_) != -1;
+    if (::munmap(d.p_data_, d.length_) == -1) { return false; }
+    d.p_data_ = nullptr;
+    d.offset_ = 0;
+    d.length_ = 0;
+    return true;
 }
 
 template <>
