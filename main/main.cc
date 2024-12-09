@@ -2,6 +2,8 @@
 #include <cstdint>
 #include <iostream>
 #include <unistd.h>
+#include "aymmap/detail/mman_unix.tcc"
+#include "aymmap/global.hpp"
 #include "aymmap/mman.hpp"
 
 //using namespace iin;
@@ -10,37 +12,36 @@
 
 int main()
 {
-    auto fd = ::open("你好.txt", O_RDWR | O_CREAT, 0666);
+    using namespace aymmap;
+    auto ph = fs::path("你好.txt");
+    AccessFlag flag = AccessFlag::kDefault;
+    auto fd = MemMapTraits::openFile(ph, flag);
     if (fd == -1)
         return -1;
     
-    off_t newSize = 1024; // 新的文件大小
-if (ftruncate(fd, newSize) == -1) {
-    close(fd);
-    return -1;
-}
+    std::size_t f_size = 1024;
+    MemMapTraits::resizeFile(fd, f_size);
+    auto len = MemMapTraits::fileSize(fd);
 
-struct stat sb;
-if (fstat(fd, &sb) == -1) {
-    ::close(fd);
-    return -1;
-}
-char* mmapped = (char*)mmap(NULL, sb.st_size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
-if (mmapped == MAP_FAILED) {
+    MemMapData d;
+    d.handle_ = fd;
+
+    if (!MemMapTraits::map(d, flag, len, 0)) {
         std::cout << "mmap failed" << std::endl;
-    ::close(fd);
-    return -1;
-}
-    // 修改映射区域的内容
-mmapped[0] = 'A';
-if (msync(mmapped, sb.st_size, MS_SYNC) == -1) {
+        MemMapTraits::closeFile(fd);
+        return -1;
+    }
+
+    char * mmapped = (char *)d.p_data_;
+    mmapped[0] = 'A';
+
+    if (!MemMapTraits::sync(d.p_data_, len)) {
         std::cout << "msync failed" << std::endl;
-}
-if (munmap(mmapped, sb.st_size) == -1) {
-}
+    }
 
-
-    ::close(fd);
+    MemMapTraits::unmap(d);
+    MemMapTraits::closeFile(fd);
+    MemMapTraits::removeFile(ph);
     return 0;
 }
 

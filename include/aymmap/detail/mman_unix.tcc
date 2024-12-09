@@ -64,7 +64,7 @@ MemMapTraits::handle_type MemMapTraits::openFile(path_cref ph, AccessFlag access
     if (bool(access & AccessFlag::kCreate)) {
         mode |= O_CREAT;
     }
-    return ::open(ph.c_str(), mode);
+    return ::open(ph.c_str(), mode, 0666);
 }
 
 template <>
