@@ -21,7 +21,6 @@
 #error unreachable
 #endif
 
-#include <cstdint>
 #include <cstdio>
 #include <unistd.h>
 #include <system_error>
@@ -54,8 +53,8 @@ std::error_code MemMapTraits::lastError() {
 }
 
 template <>
-MemMapTraits::size_type MemMapTraits::pageSize() {
-    return static_cast<size_type>(::sysconf(_SC_PAGE_SIZE));
+MemMapTraits::off_type MemMapTraits::pageSize() {
+    return static_cast<off_type>(::sysconf(_SC_PAGE_SIZE));
 }
 
 template <>

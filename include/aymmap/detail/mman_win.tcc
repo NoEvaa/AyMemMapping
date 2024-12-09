@@ -45,10 +45,10 @@ std::error_code MemMapTraits::lastError() {
 }
 
 template <>
-MemMapTraits::size_type MemMapTraits::pageSize() {
+MemMapTraits::off_type MemMapTraits::pageSize() {
     SYSTEM_INFO si;
     ::GetSystemInfo(&si);
-    return static_cast<size_type>(si.dwPageSize);
+    return static_cast<off_type>(si.dwPageSize);
 }
 
 template <>
@@ -135,7 +135,7 @@ bool MemMapTraits::map(data_type & d, AccessFlag access, size_type length, off_t
 
 template <>
 bool MemMapTraits::unmap(data_type & d) {
-    ::UnmapViewOfFile(d.p_data_);
+    if (!::UnmapViewOfFile(d.p_data_)) { return false; }
     ::CloseHandle(d.map_handle_);
     d.p_data_     = nullptr;
     d.map_handle_ = kInvalidHandle;
@@ -145,6 +145,7 @@ bool MemMapTraits::unmap(data_type & d) {
 
 template <>
 bool MemMapTraits::remap(data_type & d, size_type new_length) {
+
     return true;
 }
 

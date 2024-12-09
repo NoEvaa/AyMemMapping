@@ -15,6 +15,8 @@
  */
 #pragma once
 
+#include <cstdint>
+#include <filesystem>
 #include <system_error>
 
 #include "aymmap/global.hpp"
@@ -31,7 +33,7 @@ struct BasicMemMapTraits {
 
     static std::error_code lastError();
 
-    static size_type pageSize();
+    static off_type pageSize();
 
     static size_type fileSize(handle_type);
     static handle_type filenoToHandle(int fd);
@@ -56,4 +58,12 @@ struct BasicMemMapTraits {
 #else
 #include "aymmap/detail/mman_unix.tcc"
 #endif
+
+namespace aymmap {
+namespace detail {
+inline std::int64_t alignToPageSize(std::int64_t i) {
+    return i & (~(MemMapTraits::pageSize() - 1));
+}
+}
+}
 
