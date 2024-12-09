@@ -69,7 +69,7 @@ struct MemMapTraits {
     }
 
     /**
-     * https://man7.org/linux/man-pages/man2/mmap.2.html
+     * [mmap(2)](http://man7.org/linux/man-pages/man2/mmap.2.html)
      */
     static bool map(MemMapData & d, AccessFlag access, std::size_t length, std::int64_t offset) {
         int prot{};
@@ -105,7 +105,7 @@ struct MemMapTraits {
     }
 
     /**
-     * https://man7.org/linux/man-pages/man2/mprotect.2.html
+     * [mprotect(2)](http://man7.org/linux/man-pages/man2/mprotect.2.html)
      */
     static bool protect(void * addr, std::size_t length, ProtectFlag prot_flag) {
         int prot{};
