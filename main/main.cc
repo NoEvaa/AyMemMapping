@@ -28,7 +28,7 @@ int main()
     auto len = MemMapTraits::fileSize(fd);
 
     MemMapData d;
-    d.handle_ = fd;
+    d.file_handle_ = fd;
 
     if (!MemMapTraits::map(d, flag, len, 0)) {
         std::cout << "mmap failed" << std::endl;

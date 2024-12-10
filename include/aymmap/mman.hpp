@@ -51,7 +51,8 @@ struct BasicMemMapTraits {
     static bool sync(void *, size_type length);
     static bool lock(void *, size_type length);
     static bool unlock(void *, size_type length);
-    static bool protect(void *, size_type length, ProtectFlag);
+    static bool protect(void *, size_type length, AccessFlag);
+    static bool advise(void *, size_type length, AdviceFlag);
 };
 }
 

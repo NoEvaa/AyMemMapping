@@ -151,10 +151,7 @@ bool MemMapTraits::unmap(data_type & d) {
 }
 
 template <>
-bool MemMapTraits::remap(data_type & d, size_type new_length) {
-
-    return true;
-}
+bool MemMapTraits::remap(data_type &, size_type) { return false; }
 
 template <>
 bool MemMapTraits::sync(void * addr, size_type length) {
@@ -175,9 +172,19 @@ bool MemMapTraits::unlock(void * addr, size_type length) {
  * https://learn.microsoft.com/en-us/windows/win32/api/memoryapi/nf-memoryapi-virtualprotect
  */
 template <>
-bool MemMapTraits::protect(void * addr, size_type length, ProtectFlag prot_flag) {
+bool MemMapTraits::protect(void * addr, size_type length, AccessFlag access) {
     DWORD prot{};
+
+    if (bool(access & AccessFlag::kNoAccess)) { prot = PAGE_NOACCESS; }
+    else if (bool(access & AccessFlag::kCopy)) { prot = PAGE_WRITECOPY; }
+    else if (bool(access & AccessFlag::_kWrite)) { prot = PAGE_READWRITE; }
+    else { prot = PAGE_READONLY; }
+    if (bool(access & AccessFlag::kExec)) { prot <<= 4; }
+
     return ::VirtualProtect(addr, length, prot, 0);
 }
+
+template <>
+bool MemMapTraits::advise(void *, size_type, AdviceFlag) { return false; }
 }
 

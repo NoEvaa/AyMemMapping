@@ -160,9 +160,35 @@ bool MemMapTraits::unlock(void * addr, size_type length) {
  * [mprotect(2)](http://man7.org/linux/man-pages/man2/mprotect.2.html)
  */
 template <>
-bool MemMapTraits::protect(void * addr, size_type length, ProtectFlag prot_flag) {
+bool MemMapTraits::protect(void * addr, size_type length, AccessFlag access) {
     int prot{};
+
+    if (bool(access & AccessFlag::kNoAccess)) {
+        prot = PROT_NONE;
+    } else {
+        if (bool(access & AccessFlag::kRead)) { prot |= PROT_READ; }
+        if (bool(access & AccessFlag::_kWrite)) { prot |= PROT_WRITE; }
+        if (bool(access & AccessFlag::kExec)) { prot |= PROT_EXEC; }
+    }
+
     return ::mprotect(addr, length, prot) != -1;
+}
+
+/**
+ * [madvise(2)](http://man7.org/linux/man-pages/man2/madvise.2.html)
+ */
+template <>
+bool MemMapTraits::advise(void * addr, size_type length, AdviceFlag adv_flag) {
+    int flag{};
+    switch (adv_flag) {
+        case AdviceFlag::kNormal: flag = MADV_NORMAL;
+        case AdviceFlag::kRandom: flag = MADV_RANDOM;
+        case AdviceFlag::kSequential: flag = MADV_SEQUENTIAL;
+        case AdviceFlag::kWillNeed: flag = MADV_WILLNEED;
+        case AdviceFlag::kDontNeed: flag = MADV_DONTNEED;
+        default: return false;
+    }
+    return ::madvise(addr, length, flag) != -1;
 }
 }
 

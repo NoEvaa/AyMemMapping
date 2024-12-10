@@ -55,6 +55,7 @@ enum class AccessFlag : std::uint32_t {
     kCopy   = 0x0004,
     kExec   = 0x0008,
     kCreate = 0x0010,
+    kNoAccess = 0x0020,
 
     kDefault   = kWrite | kCreate,
     kWriteCopy = kWrite | kCopy,
@@ -62,8 +63,13 @@ enum class AccessFlag : std::uint32_t {
 };
 _AYMMAP_DECL_ENUM_OP(AccessFlag)
 
-enum class ProtectFlag : std::uint32_t {};
-_AYMMAP_DECL_ENUM_OP(ProtectFlag)
+enum class AdviceFlag {
+    kNormal = 0,
+    kRandom,
+    kSequential,
+    kWillNeed,
+    kDontNeed,
+};
 }
 
 #undef _AYMMAP_DECL_ENUM_OP
