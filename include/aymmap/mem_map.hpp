@@ -21,14 +21,41 @@ namespace aymmap {
 template <typename ByteT>
 class BasicMemMap {
 public:
-    using byte_type   = ByteT;
+    using byte_type      = ByteT;
+    using pointer        = byte_type *;
+    using const_pointer  = byte_type const *;
+    using iterator       = pointer; 
+    using const_iterator = const_pointer; 
+
     using traits_type = MemMapTraits;
     using data_type   = traits_type::data_type;
     using path_type   = traits_type::path_type;
     using path_cref   = traits_type::path_cref;
+    using size_type   = traits_type::size_type;
+    using off_type    = traits_type::off_type;
+
+    BasicMemMap() {}
+    ~BasicMemMap() {}
+
+    void map();
+    void unmap();
+    void flush();
+    void resize();
+    void lock();
+    void unlock();
+    void protect();
+    void advise();
+
+    pointer data() { return m_p_byte; }
+    const_pointer data() const { return m_p_byte; }
+    const_pointer c_str() const { return m_p_byte; }
 
 private:
-    byte_type * m_p_str;
+    pointer   m_p_byte = nullptr;
+    data_type m_data{};
+    off_type  m_aligned_offset{};
 };
+
+using MemMap = BasicMemMap<char>;
 }
 
