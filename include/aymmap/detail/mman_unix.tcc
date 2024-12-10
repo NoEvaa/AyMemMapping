@@ -37,8 +37,8 @@ namespace aymmap {
 struct MemMapData {
     using handle_type = int;
 
-    handle_type handle_ = INVALID_HANDLE_VALUE;
-    void *      p_data_ = nullptr;
+    handle_type file_handle_ = INVALID_HANDLE_VALUE;
+    void *      p_data_      = nullptr;
     std::size_t length_{};
 };
 
@@ -55,6 +55,11 @@ std::error_code MemMapTraits::lastError() {
 template <>
 MemMapTraits::off_type MemMapTraits::pageSize() {
     return static_cast<off_type>(::sysconf(_SC_PAGE_SIZE));
+}
+
+template <>
+bool MemMapTraits::checkHandle(handle_type handle) {
+    return (handle != kInvalidHandle);
 }
 
 template <>
@@ -80,20 +85,17 @@ MemMapTraits::handle_type MemMapTraits::openFile(path_cref ph, AccessFlag access
 
 template <>
 bool MemMapTraits::closeFile(handle_type handle) {
-    ::close(handle);
-    return true;
+    return ::close(handle);
 }
 
 template <>
 bool MemMapTraits::removeFile(path_cref ph) {
-    ::remove(ph.c_str());
-    return true;
+    return ::remove(ph.c_str());
 }
 
 template <>
 bool MemMapTraits::resizeFile(handle_type handle, size_type new_size) {
-    ::ftruncate(handle, new_size);
-    return true;
+    return ::ftruncate(handle, new_size);
 }
 
 /**
@@ -108,9 +110,9 @@ bool MemMapTraits::map(data_type & d, AccessFlag access, size_type length, off_t
     if (bool(access & AccessFlag::_kWrite)) { prot |= PROT_WRITE; }
     if (bool(access & AccessFlag::kExec)) { prot |= PROT_EXEC; }
     flags = bool(access & AccessFlag::kCopy) ? MAP_PRIVATE : MAP_SHARED;
-    if (d.handle_ == kInvalidHandle) { flags |= MAP_ANONYMOUS; }
+    if (d.file_handle_ == kInvalidHandle) { flags |= MAP_ANONYMOUS; }
 
-    void * p_map = ::mmap(NULL, length, prot, flags, d.handle_, offset);
+    void * p_map = ::mmap(NULL, length, prot, flags, d.file_handle_, offset);
     if (p_map == MAP_FAILED) { return false; }
     d.p_data_ = p_map;
     d.length_ = length;

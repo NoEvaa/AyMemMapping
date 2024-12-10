@@ -35,6 +35,8 @@ struct BasicMemMapTraits {
 
     static off_type pageSize();
 
+    static bool checkHandle(handle_type);
+
     static size_type fileSize(handle_type);
     static handle_type filenoToHandle(int fd);
     static handle_type openFile(path_cref, AccessFlag);
@@ -54,7 +56,7 @@ struct BasicMemMapTraits {
 }
 
 #ifdef _AYMMAP_WIN
-#include "aymmap/detail/mman_win.tcc"
+#include "aymmap/detail/mman_win.ipp"
 #else
 #include "aymmap/detail/mman_unix.tcc"
 #endif

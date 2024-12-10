@@ -56,9 +56,9 @@ enum class AccessFlag : std::uint32_t {
     kExec   = 0x0008,
     kCreate = 0x0010,
 
+    kDefault   = kWrite | kCreate,
     kWriteCopy = kWrite | kCopy,
     kReadExec  = kRead | kExec,
-    kDefault   = kWrite | kCreate,
 };
 _AYMMAP_DECL_ENUM_OP(AccessFlag)
 

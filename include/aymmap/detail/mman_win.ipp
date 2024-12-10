@@ -15,6 +15,7 @@
  */
 #pragma once
 
+#include "aymmap/detail/mman_unix.tcc"
 #include "aymmap/global.hpp"
 
 #ifndef _AYMMAP_WIN
@@ -22,19 +23,20 @@
 #endif
 
 #include <windows.h>
+#include <io.h>
 #include <system_error>
 
 namespace aymmap {
 struct MemMapData {
     using handle_type = HANDLE;
 
-    handle_type handle_     = INVALID_HANDLE_VALUE;
-    handle_type map_handle_ = INVALID_HANDLE_VALUE;
-    void *      p_data_     = nullptr;
+    handle_type file_handle_ = INVALID_HANDLE_VALUE;
+    handle_type map_handle_  = INVALID_HANDLE_VALUE;
+    void *      p_data_      = nullptr;
     std::size_t length_{};
 };
 
-constexpr MemMapData::handle_type kInvalidHandle = INVALID_HANDLE_VALUE;
+static MemMapData::handle_type const kInvalidHandle = INVALID_HANDLE_VALUE;
 using MemMapTraits = BasicMemMapTraits<MemMapData>;
 
 template <>
@@ -48,7 +50,12 @@ template <>
 MemMapTraits::off_type MemMapTraits::pageSize() {
     SYSTEM_INFO si;
     ::GetSystemInfo(&si);
-    return static_cast<off_type>(si.dwPageSize);
+    return static_cast<off_type>(si.dwAllocationGranularity);
+}
+
+template <>
+bool MemMapTraits::checkHandle(handle_type handle) {
+    return (handle != kInvalidHandle) && (handle != NULL);
 }
 
 template <>
@@ -60,7 +67,7 @@ MemMapTraits::size_type MemMapTraits::fileSize(handle_type handle) {
 
 template <>
 MemMapTraits::handle_type MemMapTraits::filenoToHandle(int fd) {
-    return ::_get_osfhandle(fd);
+    return (handle_type)_get_osfhandle(fd);
 }
 
 /**
@@ -69,8 +76,8 @@ MemMapTraits::handle_type MemMapTraits::filenoToHandle(int fd) {
 template <>
 MemMapTraits::handle_type MemMapTraits::openFile(path_cref ph, AccessFlag access) {
     DWORD access_mode = bool(access & AccessFlag::_kWrite) ?
-        OGENERIC_READ | GENERIC_WRITE : OGENERIC_READ;
-    DWORD create_mode = bool(access & AccessFlag::kCreate) ? OPEN_ALWAYS | OPEN_EXISTING;
+        GENERIC_READ | GENERIC_WRITE : GENERIC_READ;
+    DWORD create_mode = bool(access & AccessFlag::kCreate) ? OPEN_ALWAYS : OPEN_EXISTING;
     return ::CreateFileW(ph.c_str(), access_mode, FILE_SHARE_READ | FILE_SHARE_WRITE, 0,
                          create_mode, FILE_ATTRIBUTE_NORMAL, 0);
 }
@@ -113,9 +120,9 @@ bool MemMapTraits::map(data_type & d, AccessFlag access, size_type length, off_t
     else { prot = PAGE_READONLY; }
     if (bool(access & AccessFlag::kExec)) { prot <<= 4; }
 
-    const auto map_handle = ::CreateFileMappingW(d.handle_, 0, prot,
+    const auto map_handle = ::CreateFileMappingW(d.file_handle_, 0, prot,
         detail::int64High(length), detail::int64Low(length), 0);
-    if (map_handle == kInvalidHandle) { return false; }
+    if (!checkHandle(map_handle)) { return false; }
 
     prot = bool(access & AccessFlag::_kWrite) ? FILE_MAP_WRITE : FILE_MAP_READ;
     if (bool(access & AccessFlag::kCopy)) { prot |= FILE_MAP_COPY; }

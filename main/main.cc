@@ -1,10 +1,10 @@
-#include <asm-generic/fcntl.h>
 #include <cstdint>
 #include <iostream>
 #include <unistd.h>
-#include "aymmap/detail/mman_unix.tcc"
+#include <locale>
 #include "aymmap/global.hpp"
 #include "aymmap/mman.hpp"
+
 
 //using namespace iin;
 
@@ -12,12 +12,16 @@
 
 int main()
 {
+    std::locale::global(std::locale("en_US.UTF-8"));
+    
     using namespace aymmap;
-    auto ph = fs::path("你好.txt");
+    auto ph = fs::path(u8"你好.txt");
     AccessFlag flag = AccessFlag::kDefault;
     auto fd = MemMapTraits::openFile(ph, flag);
-    if (fd == -1)
+    if (fd == -1) {
+        std::cout << "file open failed" << std::endl;
         return -1;
+    }
     
     std::size_t f_size = 1024;
     MemMapTraits::resizeFile(fd, f_size);
