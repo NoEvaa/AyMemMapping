@@ -31,7 +31,7 @@ struct BasicMemMapTraits {
     using path_type   = fs::path;
     using path_cref   = path_type const &;
 
-    static std::error_code lastError();
+    static int lastErrno();
 
     static off_type pageSize();
 

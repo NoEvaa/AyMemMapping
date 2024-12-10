@@ -40,10 +40,8 @@ static MemMapData::handle_type const kInvalidHandle = INVALID_HANDLE_VALUE;
 using MemMapTraits = BasicMemMapTraits<MemMapData>;
 
 template <>
-std::error_code MemMapTraits::lastError() {
-    std::error_code ec;
-    ec.assign(GetLastError(), std::system_category());
-    return ec;
+int MemMapTraits::lastErrno() {
+    return GetLastError();
 }
 
 template <>

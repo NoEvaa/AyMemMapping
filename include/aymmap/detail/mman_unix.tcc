@@ -23,7 +23,7 @@
 
 #include <cstdio>
 #include <unistd.h>
-#include <system_error>
+#include <errno.h>
 #include <sys/mman.h>
 #include <sys/stat.h>
 
@@ -46,10 +46,8 @@ constexpr MemMapData::handle_type kInvalidHandle = INVALID_HANDLE_VALUE;
 using MemMapTraits = BasicMemMapTraits<MemMapData>;
 
 template <>
-std::error_code MemMapTraits::lastError() {
-    std::error_code ec;
-    ec.assign(errno, std::system_category());
-    return ec;
+int MemMapTraits::lastErrno() {
+    return errno;
 }
 
 template <>
