@@ -38,6 +38,7 @@ struct BasicMemMapTraits {
     static bool checkHandle(handle_type);
 
     static size_type fileSize(handle_type);
+    static int fileToFileno(FILE *);
     static handle_type filenoToHandle(int fd);
     static handle_type openFile(path_cref, AccessFlag);
     static bool closeFile(handle_type);

@@ -24,7 +24,7 @@
 
 #include <windows.h>
 #include <io.h>
-#include <system_error>
+#include <cstdio>
 
 namespace aymmap {
 struct MemMapData {
@@ -61,6 +61,11 @@ MemMapTraits::size_type MemMapTraits::fileSize(handle_type handle) {
     LARGE_INTEGER file_sz;
     if(::GetFileSizeEx(handle, &file_sz) == 0) { return 0U; }
     return static_cast<size_type>(file_sz.QuadPart);
+}
+
+template <>
+int MemMapTraits::fileToFileno(FILE * fi) {
+    return _fileno(fi);
 }
 
 template <>

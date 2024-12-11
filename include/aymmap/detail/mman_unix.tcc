@@ -68,6 +68,11 @@ MemMapTraits::size_type MemMapTraits::fileSize(handle_type handle) {
 }
 
 template <>
+int MemMapTraits::fileToFileno(FILE * fi) {
+    return fileno(fi);
+}
+
+template <>
 MemMapTraits::handle_type MemMapTraits::filenoToHandle(int fd) {
     return fd;
 }

@@ -15,6 +15,7 @@
  */
 #pragma once
 
+#include "aymmap/detail/mman_unix.tcc"
 #include "aymmap/mman.hpp"
 
 namespace aymmap {
@@ -38,35 +39,70 @@ public:
     using off_type    = typename traits_type::off_type;
 
     BasicFileMap() = default;
-    ~BasicFileMap() { unmap(); }
+    ~BasicFileMap() { (void)unmap(); }
     BasicFileMap(BasicFileMap &&);
     BasicFileMap & operator=(BasicFileMap &&);
     BasicFileMap(BasicFileMap const &) = delete;
     BasicFileMap & operator=(BasicFileMap const &) = delete;
 
-    errno_type map(path_cref);
-    errno_type map(FILE *);
-    errno_type unmap();
-    errno_type flush();
-    errno_type resize();
-    errno_type lock();
-    errno_type unlock();
-    errno_type protect();
-    errno_type advise();
-
-    bool isMapped() const noexcept;
-    size_type size() const noexcept;
+    bool isMapped() const noexcept { return bool(m_p_byte); }
+    size_type size() const noexcept { return m_length; }
 
     pointer data() noexcept { return m_p_byte; }
     const_pointer data() const noexcept { return m_p_byte; }
     const_pointer c_str() const noexcept { return m_p_byte; }
 
+    errno_type map(path_cref, AccessFlag);
+    errno_type map(FILE *, AccessFlag);
+    errno_type unmap();
+    errno_type flush() { return _toErrno(traits_type::sync(m_data.p_data_, m_data.length_)); }
+    errno_type resize();
+    errno_type lock() { return _toErrno(traits_type::lock(m_data.p_data_, m_data.length_)); }
+    errno_type unlock() { return _toErrno(traits_type::unlock(m_data.p_data_, m_data.length_)); }
+    errno_type protect(AccessFlag flag)
+        { return _toErrno(traits_type::protect(m_data.p_data_, m_data.length_, flag)); }
+    errno_type advise(AdviceFlag flag)
+        { return _toErrno(traits_type::advise(m_data.p_data_, m_data.length_, flag)); }
+
+private:
+    errno_type _toErrno(bool b) noexcept { return b ? errno_type(0) : traits_type::lastErrno(); } 
+    handle_type _fileToHandle(FILE * fi) {
+        return traits_type::filenoToHandle(traits_type::fileToFileno(fi));
+    }
+
 private:
     pointer   m_p_byte = nullptr;
-    data_type m_data{};
-    off_type  m_aligned_offset{};
+    data_type m_data;
+    size_type m_length = 0;
+    off_type  m_offset = 0; // aligned
+    bool      m_b_internal_file = false;
 };
 
 using MemMap = BasicFileMap<char>;
+
+template <typename T, typename T2>
+BasicFileMap<T, T2>::errno_type BasicFileMap<T, T2>::map(path_cref ph, AccessFlag flag) {}
+
+template <typename T, typename T2>
+BasicFileMap<T, T2>::errno_type BasicFileMap<T, T2>::map(FILE * fi, AccessFlag flag) {}
+
+template <typename T, typename T2>
+BasicFileMap<T, T2>::errno_type BasicFileMap<T, T2>::unmap() {
+    if (!isMapped()) { return _toErrno(true); }
+    auto en = _toErrno(traits_type::unmap(m_data));
+    if (!en) { return en; }
+    if (m_b_internal_file) {
+        en = traits_type::closeFile(m_data.file_handle_);
+    }
+    m_p_byte            = nullptr;
+    m_length            = 0;
+    m_offset            = 0;
+    m_b_internal_file   = false;
+    m_data.file_handle_ = kInvalidHandle;
+    return en;
+}
+
+template <typename T, typename T2>
+BasicFileMap<T, T2>::errno_type BasicFileMap<T, T2>::resize() {}
 }
 
