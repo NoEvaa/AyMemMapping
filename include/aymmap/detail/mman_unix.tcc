@@ -22,8 +22,8 @@
 #endif
 
 #include <cstdio>
+#include <cerrno>
 #include <unistd.h>
-#include <errno.h>
 #include <sys/mman.h>
 #include <sys/stat.h>
 

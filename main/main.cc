@@ -1,5 +1,6 @@
 #include <cstdint>
 #include <iostream>
+#include <system_error>
 #include <unistd.h>
 #include <locale>
 #include "aymmap/global.hpp"
@@ -13,8 +14,18 @@
 int main()
 {
     std::locale::global(std::locale("en_US.UTF-8"));
-    
+
     using namespace aymmap;
+
+    auto ph1 = fs::path("111.txt");
+    auto fd1 = MemMapTraits::openFile(ph1, AccessFlag::kWrite);
+    if (fd1 == -1) {
+        std::cout << std::error_code(-1, std::system_category()).message() << std::endl;
+        std::cout << errno << std::endl;
+        std::cout << "file open failed" << std::endl;
+        return -1;
+    }
+
     auto ph = fs::path(u8"你好.txt");
     AccessFlag flag = AccessFlag::kDefault;
     auto fd = MemMapTraits::openFile(ph, flag);
