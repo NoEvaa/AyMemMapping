@@ -15,6 +15,7 @@
  */
 #pragma once
 
+#include "aymmap/global.hpp"
 #include "aymmap/mman.hpp"
 
 namespace aymmap {
@@ -55,7 +56,8 @@ public:
 
     errno_type unmap();
     errno_type flush();
-    errno_type resize();
+    errno_type remap(AccessFlag, size_type length, size_type offset);
+    errno_type resize(size_type new_length);
     errno_type lock();
     errno_type unlock();
     errno_type protect(AccessFlag);
@@ -78,22 +80,20 @@ private:
         m_p_byte            = nullptr;
         m_length            = 0;
         m_offset            = 0;
-        m_aligned_offset    = 0;
         m_b_internal_file   = false;
         m_data.file_handle_ = kInvalidHandle;
     }
-    errno_type _mapImpl(AccessFlag, size_type, off_type);
+    bool _mapImpl(AccessFlag, size_type, off_type);
 
 private:
     pointer   m_p_byte = nullptr;
     data_type m_data;
     size_type m_length = 0;
     off_type  m_offset = 0;
-    off_type  m_aligned_offset  = 0;
     bool      m_b_internal_file = false;
 };
 
-using MemMap = BasicFileMap<char>;
+using FileMap = BasicFileMap<char>;
 
 template <typename T, typename T2>
 BasicFileMap<T, T2>::errno_type BasicFileMap<T, T2>::map(path_cref ph,
@@ -115,17 +115,17 @@ template <typename T, typename T2>
 BasicFileMap<T, T2>::errno_type BasicFileMap<T, T2>::map(FILE * fi, AccessFlag flag) {}
 
 template <typename T, typename T2>
-BasicFileMap<T, T2>::errno_type BasicFileMap<T, T2>::_mapImpl(
+bool BasicFileMap<T, T2>::_mapImpl(
     AccessFlag flag, size_type length, off_type offset) {
     off_type  aligned_offset = detail::alignToPageSize(offset);
-    size_type mapped_length = size_type(offset - aligned_offset) + length;
+    size_type mapped_length  = size_type(offset - aligned_offset) + length;
     if (!traits_type::map(m_data, flag, mapped_length, aligned_offset)) {
-        return _toErrno(false);
+        return false;
     }
     m_length = length;
     m_offset = offset - aligned_offset;
-    m_aligned_offset = aligned_offset;
     m_p_byte = reinterpret_cast<pointer>(m_data.p_data_) + m_offset;
+    return true;
 }
  
 template <typename T, typename T2>
@@ -147,7 +147,7 @@ BasicFileMap<T, T2>::errno_type BasicFileMap<T, T2>::flush() {
 }
 
 template <typename T, typename T2>
-BasicFileMap<T, T2>::errno_type BasicFileMap<T, T2>::resize() {}
+BasicFileMap<T, T2>::errno_type BasicFileMap<T, T2>::resize(size_type) {}
 
 template <typename T, typename T2>
 BasicFileMap<T, T2>::errno_type BasicFileMap<T, T2>::lock() {
