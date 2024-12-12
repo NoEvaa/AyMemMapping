@@ -15,32 +15,41 @@
  */
 #pragma once
 
-#include "aymmap/detail/mman_unix.tcc"
 #include "aymmap/global.hpp"
 
 #ifndef _AYMMAP_WIN
 #error unreachable
 #endif
 
+#include <cstdio>
+#include <cstring>
 #include <windows.h>
 #include <io.h>
-#include <cstdio>
+
+#include "aymmap/mman.hpp"
 
 namespace aymmap {
 struct MemMapData {
     using handle_type = HANDLE;
+    using size_type   = std::size_t;
+    using off_type    = std::int64_t;
 
     handle_type file_handle_ = INVALID_HANDLE_VALUE;
     handle_type map_handle_  = INVALID_HANDLE_VALUE;
     void *      p_data_      = nullptr;
-    std::size_t length_{};
+    size_type   length_{};
+    off_type    offset_{};
 };
 
 static MemMapData::handle_type const kInvalidHandle = INVALID_HANDLE_VALUE;
 using MemMapTraits = BasicMemMapTraits<MemMapData>;
 
+namespace detail {
+void _setLastErrno(MemMapTraits::errno_type en) { SetLastError(en); }
+}
+
 template <>
-int MemMapTraits::lastErrno() {
+MemMapTraits::errno_type MemMapTraits::lastErrno() {
     return GetLastError();
 }
 
@@ -77,7 +86,7 @@ MemMapTraits::handle_type MemMapTraits::filenoToHandle(int fd) {
  * https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-createfilew
  */
 template <>
-MemMapTraits::handle_type MemMapTraits::openFile(path_cref ph, AccessFlag access) {
+MemMapTraits::handle_type MemMapTraits::fileOpen(path_cref ph, AccessFlag access) {
     DWORD access_mode = bool(access & AccessFlag::_kWrite) ?
         GENERIC_READ | GENERIC_WRITE : GENERIC_READ;
     DWORD create_mode = bool(access & AccessFlag::kCreate) ? OPEN_ALWAYS : OPEN_EXISTING;
@@ -86,17 +95,17 @@ MemMapTraits::handle_type MemMapTraits::openFile(path_cref ph, AccessFlag access
 }
 
 template <>
-bool MemMapTraits::closeFile(handle_type handle) {
+bool MemMapTraits::fileClose(handle_type handle) {
     return ::CloseHandle(handle);
 }
 
 template <>
-bool MemMapTraits::removeFile(path_cref ph) {
+bool MemMapTraits::fileRemove(path_cref ph) {
     return ::DeleteFileW(ph.c_str());
 }
 
 template <>
-bool MemMapTraits::resizeFile(handle_type handle, size_type new_size) {
+bool MemMapTraits::fileResize(handle_type handle, size_type new_size) {
     LARGE_INTEGER li;
     li.QuadPart = new_size;
     if (!::SetFilePointerEx(handle, li, NULL, FILE_BEGIN)) {
@@ -140,21 +149,67 @@ bool MemMapTraits::map(data_type & d, AccessFlag access, size_type length, off_t
     d.p_data_     = p_map;
     d.map_handle_ = map_handle;
     d.length_     = length;
+    d.offset_     = offset;
     return true;
 }
 
 template <>
 bool MemMapTraits::unmap(data_type & d) {
-    if (!::UnmapViewOfFile(d.p_data_)) { return false; }
+    if (d.p_data_) [[likely]] {
+        if (!::UnmapViewOfFile(d.p_data_)) { return false; }
+    }
     ::CloseHandle(d.map_handle_);
     d.p_data_     = nullptr;
     d.map_handle_ = kInvalidHandle;
     d.length_     = 0;
+    d.offset_     = 0;
     return true;
 }
 
 template <>
-bool MemMapTraits::remap(data_type &, size_type) { return false; }
+bool MemMapTraits::remap(data_type & d, size_type new_length) {
+    bool b_result = true;
+    errno_type file_resize_err{0};
+
+    if (d.file_handle_ != INVALID_HANDLE_VALUE) {
+        // unmap the view and resize the file
+        if (!::UnmapViewOfFile(d.p_data_)) { return false; }
+        d.p_data_ = nullptr;
+
+        ::CloseHandle(d.map_handle_);
+        
+        auto const new_file_sz = size_type(d.offset_) + new_length;
+        if (!fileResize(d.file_handle_, new_file_sz)) {
+            b_result = false;
+            file_resize_err = lastErrno();
+            // try to remap the file with old length
+            new_length = d.length_;
+        }
+    } else {
+        ::CloseHandle(d.map_handle_);
+    }
+
+    auto const old_length = d.length_;
+    auto const offset     = d.offset_;
+    void * p_old_data = d.p_data_;
+    d.map_handle_ = kInvalidHandle;
+    d.p_data_     = nullptr;
+    d.length_     = 0;
+    d.offset_     = 0;
+
+    if (!map(d, AccessFlag::kDefault, new_length, offset)) {
+        b_result = false;
+    } else if (p_old_data) {
+        // copy old view of anonymous map
+        char * old_chars = reinterpret_cast<char *>(p_old_data);
+        char * new_chars = reinterpret_cast<char *>(d.p_data_);
+        memcpy(new_chars, old_chars, old_length < new_length ? old_length : new_length);
+    }
+
+    if (p_old_data) { ::UnmapViewOfFile(p_old_data); }
+    if (file_resize_err) { detail::_setLastErrno(file_resize_err); }
+    return b_result;
+}
 
 template <>
 bool MemMapTraits::sync(void * addr, size_type length) {
@@ -189,5 +244,6 @@ bool MemMapTraits::protect(void * addr, size_type length, AccessFlag access) {
 
 template <>
 bool MemMapTraits::advise(void *, size_type, AdviceFlag) { return false; }
+#define _AYMMAP_UNIMPL_ADVISE 1
 }
 

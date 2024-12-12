@@ -36,17 +36,20 @@
 namespace aymmap {
 struct MemMapData {
     using handle_type = int;
+    using size_type   = std::size_t;
+    using off_type    = std::int64_t;
 
     handle_type file_handle_ = INVALID_HANDLE_VALUE;
     void *      p_data_      = nullptr;
-    std::size_t length_{};
+    size_type   length_{};
+    off_type    offset_{};
 };
 
 constexpr MemMapData::handle_type kInvalidHandle = INVALID_HANDLE_VALUE;
 using MemMapTraits = BasicMemMapTraits<MemMapData>;
 
 template <>
-int MemMapTraits::lastErrno() {
+MemMapTraits::errno_type MemMapTraits::lastErrno() {
     return errno;
 }
 
@@ -78,27 +81,27 @@ MemMapTraits::handle_type MemMapTraits::filenoToHandle(int fd) {
 }
 
 template <>
-MemMapTraits::handle_type MemMapTraits::openFile(path_cref ph, AccessFlag access) {
+MemMapTraits::handle_type MemMapTraits::fileOpen(path_cref ph, AccessFlag access) {
     int mode = bool(access & AccessFlag::_kWrite) ? O_RDWR : O_RDONLY;
     if (bool(access & AccessFlag::kCreate)) {
         mode |= O_CREAT;
     }
-    return ::open(ph.c_str(), mode, 0666);
+    return ::open(ph.c_str(), mode, 0777);
 }
 
 template <>
-bool MemMapTraits::closeFile(handle_type handle) {
-    return ::close(handle);
+bool MemMapTraits::fileClose(handle_type handle) {
+    return ::close(handle) == 0;
 }
 
 template <>
-bool MemMapTraits::removeFile(path_cref ph) {
-    return ::remove(ph.c_str());
+bool MemMapTraits::fileRemove(path_cref ph) {
+    return ::remove(ph.c_str()) == 0;
 }
 
 template <>
-bool MemMapTraits::resizeFile(handle_type handle, size_type new_size) {
-    return ::ftruncate(handle, new_size);
+bool MemMapTraits::fileResize(handle_type handle, size_type new_size) {
+    return ::ftruncate(handle, new_size) == 0;
 }
 
 /**
@@ -119,27 +122,36 @@ bool MemMapTraits::map(data_type & d, AccessFlag access, size_type length, off_t
     if (p_map == MAP_FAILED) { return false; }
     d.p_data_ = p_map;
     d.length_ = length;
+    d.offset_ = offset;
     return true;
 }
 
 template <>
 bool MemMapTraits::unmap(data_type & d) {
-    if (::munmap(d.p_data_, d.length_) == -1) { return false; }
+    if (d.p_data_) [[likely]] {
+        if (::munmap(d.p_data_, d.length_) == -1) { return false; }
+    }
     d.p_data_ = nullptr;
     d.length_ = 0;
+    d.offset_ = 0;
     return true;
 }
 
 template <>
 bool MemMapTraits::remap(data_type & d, size_type new_length) {
-    void * p_newmap = nullptr;
+    auto const new_file_sz = size_type(d.offset_) + new_length;
+    if (d.file_handle_ != kInvalidHandle && !fileResize(d.file_handle_, new_file_sz)) {
+        return false;
+    }
+
+    void * p_new_data = nullptr;
 #ifdef MREMAP_MAYMOVE
-    p_newmap = ::mremap(d.p_data_, d.length_, new_length, MREMAP_MAYMOVE);
+    p_new_data = ::mremap(d.p_data_, d.length_, new_length, MREMAP_MAYMOVE);
 #else
-    p_newmap = ::mremap(d.p_data_, d.length_, new_length, 0);
+    p_new_data = ::mremap(d.p_data_, d.length_, new_length, 0);
 #endif
-    if (p_newmap == MAP_FAILED) { return false; }
-    d.p_data_ = p_newmap;
+    if (p_new_data == MAP_FAILED) { return false; }
+    d.p_data_ = p_new_data;
     d.length_ = new_length;
     return true;
 }

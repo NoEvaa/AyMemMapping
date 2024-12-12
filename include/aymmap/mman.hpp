@@ -17,7 +17,6 @@
 
 #include <cstdint>
 #include <filesystem>
-#include <system_error>
 
 #include "aymmap/global.hpp"
 
@@ -26,13 +25,15 @@ template <typename T>
 struct BasicMemMapTraits {
     using data_type   = T;
     using handle_type = typename data_type::handle_type;
-    using size_type   = std::size_t;
-    using off_type    = std::int64_t;
+    using size_type   = typename data_type::size_type;
+    using off_type    = typename data_type::off_type;
+
     using path_type   = fs::path;
     using path_cref   = path_type const &;
 
-    static int lastErrno();
+    using errno_type = int;
 
+    static errno_type lastErrno();
     static off_type pageSize();
 
     static bool checkHandle(handle_type);
@@ -40,10 +41,10 @@ struct BasicMemMapTraits {
     static size_type fileSize(handle_type);
     static int fileToFileno(FILE *);
     static handle_type filenoToHandle(int fd);
-    static handle_type openFile(path_cref, AccessFlag);
-    static bool closeFile(handle_type);
-    static bool removeFile(path_cref);
-    static bool resizeFile(handle_type, size_type new_size);
+    static handle_type fileOpen(path_cref, AccessFlag);
+    static bool fileClose(handle_type);
+    static bool fileRemove(path_cref);
+    static bool fileResize(handle_type, size_type new_size);
 
     static bool map(data_type &, AccessFlag, size_type length, off_type offset);
     static bool unmap(data_type &);

@@ -17,25 +17,27 @@ int main()
 
     using namespace aymmap;
 
+    /*
     auto ph1 = fs::path("111.txt");
-    auto fd1 = MemMapTraits::openFile(ph1, AccessFlag::kWrite);
+    auto fd1 = MemMapTraits::fileOpen(ph1, AccessFlag::kWrite);
     if (fd1 == -1) {
         std::cout << std::error_code(-1, std::system_category()).message() << std::endl;
         std::cout << errno << std::endl;
         std::cout << "file open failed" << std::endl;
         return -1;
     }
+    */
 
     auto ph = fs::path(u8"你好.txt");
     AccessFlag flag = AccessFlag::kDefault;
-    auto fd = MemMapTraits::openFile(ph, flag);
+    auto fd = MemMapTraits::fileOpen(ph, flag);
     if (fd == -1) {
         std::cout << "file open failed" << std::endl;
         return -1;
     }
     
     std::size_t f_size = 1024;
-    MemMapTraits::resizeFile(fd, f_size);
+    MemMapTraits::fileResize(fd, f_size);
     auto len = MemMapTraits::fileSize(fd);
 
     MemMapData d;
@@ -43,7 +45,7 @@ int main()
 
     if (!MemMapTraits::map(d, flag, len, 0)) {
         std::cout << "mmap failed" << std::endl;
-        MemMapTraits::closeFile(fd);
+        MemMapTraits::fileClose(fd);
         return -1;
     }
 
@@ -55,8 +57,8 @@ int main()
     }
 
     MemMapTraits::unmap(d);
-    MemMapTraits::closeFile(fd);
-    MemMapTraits::removeFile(ph);
+    MemMapTraits::fileClose(fd);
+    MemMapTraits::fileRemove(ph);
     return 0;
 }
 

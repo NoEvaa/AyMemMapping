@@ -27,8 +27,6 @@ public:
     using iterator       = pointer;
     using const_iterator = const_pointer;
 
-    using errno_type = int;
-
     using traits_type = _Traits;
     using handle_type = typename traits_type::handle_type;
     using data_type   = typename traits_type::data_type;
@@ -36,9 +34,13 @@ public:
     using path_cref   = typename traits_type::path_cref;
     using size_type   = typename traits_type::size_type;
     using off_type    = typename traits_type::off_type;
+    using errno_type  = typename traits_type::errno_type;
 
-    static errno_type const kErrnoUnmapped = errno_type(-1);
     static constexpr size_type kInvalidSize = static_cast<size_type>(-1);
+
+    static errno_type const kEnoOk = errno_type(0);
+    static errno_type const kEnoUnimpl = errno_type(-1);
+    static errno_type const kEnoUnmapped = errno_type(-2);
 
     BasicFileMap() = default;
     ~BasicFileMap() { (void)unmap(); }
@@ -49,6 +51,8 @@ public:
 
     errno_type map(path_cref, AccessFlag, size_type length = kInvalidSize, off_type offset = 0);
     errno_type map(FILE *, AccessFlag);
+    errno_type anonMap(size_type length);
+
     errno_type unmap();
     errno_type flush();
     errno_type resize();
@@ -57,15 +61,16 @@ public:
     errno_type protect(AccessFlag);
     errno_type advise(AdviceFlag);
 
-    bool isMapped() const noexcept { return bool(m_p_byte); }
     size_type size() const noexcept { return m_length; }
-
     pointer data() noexcept { return m_p_byte; }
     const_pointer data() const noexcept { return m_p_byte; }
     const_pointer c_str() const noexcept { return m_p_byte; }
 
+    bool isMapped() const noexcept { return bool(m_p_byte); }
+    bool isAnon() const noexcept { return isMapped() && (m_data.file_handle_ == kInvalidHandle); }
+
 private:
-    errno_type _toErrno(bool b) noexcept { return b ? errno_type(0) : traits_type::lastErrno(); } 
+    errno_type _toErrno(bool b) noexcept { return b ? kEnoOk : traits_type::lastErrno(); } 
     handle_type _fileToHandle(FILE * fi) {
         return traits_type::filenoToHandle(traits_type::fileToFileno(fi));
     }
@@ -97,7 +102,7 @@ BasicFileMap<T, T2>::errno_type BasicFileMap<T, T2>::map(path_cref ph,
         auto en = unmap();
         if (en) { return en; }
     }
-    auto file_handle = traits_type::openFile(ph, flag);
+    auto file_handle = traits_type::fileOpen(ph, flag);
     if (!traits_type::checkHandle(file_handle)) [[unlikely]] { return _toErrno(false); }
 
     m_data.file_handle_ = file_handle;
@@ -137,7 +142,7 @@ BasicFileMap<T, T2>::errno_type BasicFileMap<T, T2>::unmap() {
 
 template <typename T, typename T2>
 BasicFileMap<T, T2>::errno_type BasicFileMap<T, T2>::flush() {
-    if (!isMapped()) [[unlikely]] { return kErrnoUnmapped; }
+    if (!isMapped()) [[unlikely]] { return kEnoUnmapped; }
     return _toErrno(traits_type::sync(m_data.p_data_, m_data.length_));
 }
 
@@ -146,26 +151,30 @@ BasicFileMap<T, T2>::errno_type BasicFileMap<T, T2>::resize() {}
 
 template <typename T, typename T2>
 BasicFileMap<T, T2>::errno_type BasicFileMap<T, T2>::lock() {
-    if (!isMapped()) [[unlikely]] { return kErrnoUnmapped; }
+    if (!isMapped()) [[unlikely]] { return kEnoUnmapped; }
     return _toErrno(traits_type::lock(m_data.p_data_, m_data.length_));
 }
 
 template <typename T, typename T2>
 BasicFileMap<T, T2>::errno_type BasicFileMap<T, T2>::unlock() {
-    if (!isMapped()) [[unlikely]] { return kErrnoUnmapped; }
+    if (!isMapped()) [[unlikely]] { return kEnoUnmapped; }
     return _toErrno(traits_type::unlock(m_data.p_data_, m_data.length_));
 }
 
 template <typename T, typename T2>
 BasicFileMap<T, T2>::errno_type BasicFileMap<T, T2>::protect(AccessFlag flag) {
-    if (!isMapped()) [[unlikely]] { return kErrnoUnmapped; }
+    if (!isMapped()) [[unlikely]] { return kEnoUnmapped; }
     return _toErrno(traits_type::protect(m_data.p_data_, m_data.length_, flag));
 }
 
 template <typename T, typename T2>
 BasicFileMap<T, T2>::errno_type BasicFileMap<T, T2>::advise(AdviceFlag flag) {
-    if (!isMapped()) [[unlikely]] { return kErrnoUnmapped; }
+#ifdef _AYMMAP_UNIMPL_ADVISE
+    return kEnoUnimpl;
+#else
+    if (!isMapped()) [[unlikely]] { return kEnoUnmapped; }
     return _toErrno(traits_type::advise(m_data.p_data_, m_data.length_, flag));
+#endif
 }
 }
 
