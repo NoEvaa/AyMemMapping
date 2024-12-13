@@ -29,20 +29,23 @@
 #include "aymmap/mman.hpp"
 
 namespace aymmap {
+using FileHandle = HANDLE;
+static FileHandle const kInvalidHandle = INVALID_HANDLE_VALUE;
+
 struct MemMapData {
-    using handle_type = HANDLE;
+    using handle_type = FileHandle;
     using size_type   = std::size_t;
     using off_type    = std::int64_t;
 
-    handle_type file_handle_ = INVALID_HANDLE_VALUE;
-    handle_type map_handle_  = INVALID_HANDLE_VALUE;
+    handle_type file_handle_ = kInvalidHandle;
+    handle_type map_handle_  = kInvalidHandle;
     void *      p_data_      = nullptr;
     size_type   length_{};
     off_type    offset_{};
 
     MemMapData & operator=(MemMapData && ot) {
-        file_handle_ = std::exchange(ot.file_handle_, INVALID_HANDLE_VALUE);
-        map_handle_  = std::exchange(ot.map_handle_, INVALID_HANDLE_VALUE);
+        file_handle_ = std::exchange(ot.file_handle_, kInvalidHandle);
+        map_handle_  = std::exchange(ot.map_handle_, kInvalidHandle);
         p_data_ = std::exchange(ot.p_data_, nullptr);
         length_ = std::exchange(ot.length_, 0);
         offset_ = std::exchange(ot.offset_, 0);
@@ -53,8 +56,6 @@ struct MemMapData {
     MemMapData(MemMapData const &) = delete;
     MemMapData & operator=(MemMapData const &) = delete;
 };
-
-static MemMapData::handle_type const kInvalidHandle = INVALID_HANDLE_VALUE;
 using MemMapTraits = BasicMemMapTraits<MemMapData>;
 
 namespace detail {

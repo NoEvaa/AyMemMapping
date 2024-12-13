@@ -21,6 +21,7 @@
 namespace aymmap {
 template <typename ByteT, typename _Traits = MemMapTraits>
 class BasicFileMap {
+    static_assert(sizeof(ByteT) == sizeof(char));
 public:
     using byte_type      = ByteT;
     using pointer        = byte_type *;
@@ -39,26 +40,23 @@ public:
 
     static constexpr size_type kInvalidSize = static_cast<size_type>(-1);
 
-    static errno_type const kEnoOk = errno_type(0);
-    static errno_type const kEnoUnimpl = errno_type(-1);
-    static errno_type const kEnoUnmapped = errno_type(-2);
+    static constexpr errno_type kEnoOk = errno_type(0);
+    static constexpr errno_type kEnoUnimpl = errno_type(-1);
+    static constexpr errno_type kEnoUnmapped = errno_type(-2);
+    static constexpr errno_type kEnoInviArgs = errno_type(-3);
 
     BasicFileMap() = default;
     ~BasicFileMap() { (void)unmap(); }
 
     BasicFileMap(BasicFileMap && ot) { _move(std::move(ot)); }
     BasicFileMap & operator=(BasicFileMap && ot) {
-        if (isMapped()) [[unlikely]] {
-            auto en = unmap();
-            if (en) { return *this; }
-        }
+        if (isMapped()) [[unlikely]] { if (unmap()) { return *this; } }
         _move(std::move(ot));
         return *this;
     }
 
     errno_type map(path_cref, AccessFlag, size_type length = kInvalidSize, size_type offset = 0);
-    errno_type map(handle_type const &, AccessFlag, size_type length = kInvalidSize, size_type offset = 0);
-    errno_type map(FILE *, AccessFlag);
+    errno_type map(handle_type, AccessFlag, size_type length = kInvalidSize, size_type offset = 0);
     errno_type anonMap(size_type length);
 
     errno_type unmap();
@@ -70,23 +68,33 @@ public:
     errno_type protect(AccessFlag);
     errno_type advise(AdviceFlag);
 
+    bool isMapped() const noexcept { return bool(m_p_byte); }
+    bool isAnon() const noexcept { return isMapped() && (m_data.file_handle_ == kInvalidHandle); }
+    bool empty() { return size() == 0; }
+
     size_type size() const noexcept { return m_length; }
     pointer data() noexcept { return m_p_byte; }
     const_pointer data() const noexcept { return m_p_byte; }
     const_pointer c_str() const noexcept { return m_p_byte; }
+    handle_type fileHandle() const noexcept { return m_data.file_handle_; }
 
-    bool isMapped() const noexcept { return bool(m_p_byte); }
-    bool isAnon() const noexcept { return isMapped() && (m_data.file_handle_ == kInvalidHandle); }
+    iterator begin() noexcept { return data(); }
+    const_iterator begin() const noexcept { return data(); }
+    const_iterator cbegin() const noexcept { return data(); }
+    iterator end() noexcept { return data() + size(); }
+    const_iterator end() const noexcept { return data() + size(); }
+    const_iterator cend() const noexcept { return data() + size(); }
+
+    byte_type & operator[](size_type i) noexcept { return m_p_byte[i]; }
+    byte_type const & operator[](size_type i) const noexcept { return m_p_byte[i]; }
 
 private:
     errno_type _toErrno(bool b) noexcept { return b ? kEnoOk : traits_type::lastErrno(); } 
-    handle_type _fileToHandle(FILE * fi) {
-        return traits_type::filenoToHandle(traits_type::fileToFileno(fi));
-    }
+    handle_type _fileToHandle(FILE * fi) { return traits_type::filenoToHandle(traits_type::fileToFileno(fi)); }
     void _clear() noexcept {
-        m_p_byte            = nullptr;
-        m_length            = 0;
-        m_offset            = 0;
+        m_p_byte = nullptr;
+        m_length = 0;
+        m_offset = 0;
     }
     void _reset() {
         _clear();
@@ -129,18 +137,29 @@ BasicFileMap<T, T2>::errno_type BasicFileMap<T, T2>::map(path_cref ph,
         auto en = unmap();
         if (en) { return en; }
     }
+
     auto file_handle = traits_type::fileOpen(ph, flag);
     if (!traits_type::checkHandle(file_handle)) [[unlikely]] { return _toErrno(false); }
 
     m_data.file_handle_ = file_handle;
     m_b_internal_file   = true;
-
     return _mapImpl(flag, length, offset);
 }
 
 template <typename T, typename T2>
-BasicFileMap<T, T2>::errno_type BasicFileMap<T, T2>::map(FILE * fi, AccessFlag flag) {}
+BasicFileMap<T, T2>::errno_type BasicFileMap<T, T2>::map(handle_type file_handle,
+    AccessFlag flag, size_type length, size_type offset) {
+    if (isMapped()) [[unlikely]] {
+        auto en = unmap();
+        if (en) { return en; }
+    }
 
+    if (!traits_type::checkHandle(file_handle)) [[unlikely]] { return kEnoInviArgs; }
+
+    m_data.file_handle_ = file_handle;
+    return _mapImpl(flag, length, offset);
+}
+ 
 template <typename T, typename T2>
 BasicFileMap<T, T2>::errno_type BasicFileMap<T, T2>::anonMap(size_type length) {
     if (isMapped()) [[unlikely]] {
@@ -170,18 +189,19 @@ BasicFileMap<T, T2>::errno_type BasicFileMap<T, T2>::_mapImpl(
 template <typename T, typename T2>
 BasicFileMap<T, T2>::errno_type BasicFileMap<T, T2>::_mapFileImpl(
     AccessFlag flag, size_type length, size_type offset) {
-    auto const file_sz  = traits_type::fileSize(m_data.file_handle_);
+    auto const file_sz = traits_type::fileSize(m_data.file_handle_);
     if (length == kInvalidSize) {
+        assert(offset <= file_sz);
         length = file_sz - offset;
     } else if (length + offset > file_sz) {
         if (!bool(flag & AccessFlag::_kWrite) ||
             !traits_type::fileResize(m_data.file_handle_, length + offset)) {
+            assert(offset <= file_sz);
             length = file_sz - offset;
         }
     }
     return _mapImpl(flag, length, (off_type)offset);
 }
- 
  
 template <typename T, typename T2>
 BasicFileMap<T, T2>::errno_type BasicFileMap<T, T2>::unmap() {

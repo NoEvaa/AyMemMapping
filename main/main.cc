@@ -28,7 +28,7 @@ int main()
     }
     */
 
-    auto ph = fs::path(u8"你好.txt");
+    auto ph = fs::path("你好.txt");
     AccessFlag flag = AccessFlag::kDefault;
     auto fd = MemMapTraits::fileOpen(ph, flag);
     if (fd == kInvalidHandle) {
@@ -50,7 +50,7 @@ int main()
     }
 
     char * mmapped = (char *)d.p_data_;
-    std::string text = "1234567890";
+    std::string text = "哇34567890";
     std::copy_n(text.c_str(), text.size(), mmapped);
 
     if (!MemMapTraits::sync(d.p_data_, len)) {

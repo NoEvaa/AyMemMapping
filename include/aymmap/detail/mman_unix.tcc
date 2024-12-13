@@ -34,12 +34,15 @@
 #endif
 
 namespace aymmap {
+using FileHandle = int;
+static constexpr FileHandle kInvalidHandle = INVALID_HANDLE_VALUE;
+
 struct MemMapData {
-    using handle_type = int;
+    using handle_type = FileHandle;
     using size_type   = std::size_t;
     using off_type    = std::int64_t;
 
-    handle_type file_handle_ = INVALID_HANDLE_VALUE;
+    handle_type file_handle_ = kInvalidHandle;
     void *      p_data_      = nullptr;
     size_type   length_{};
     off_type    offset_{};
@@ -47,7 +50,7 @@ struct MemMapData {
     MemMapData() = default;
 
     MemMapData & operator=(MemMapData && ot) {
-        file_handle_ = std::exchange(ot.file_handle_, INVALID_HANDLE_VALUE);
+        file_handle_ = std::exchange(ot.file_handle_, kInvalidHandle);
         p_data_ = std::exchange(ot.p_data_, nullptr);
         length_ = std::exchange(ot.length_, 0);
         offset_ = std::exchange(ot.offset_, 0);
@@ -58,8 +61,6 @@ struct MemMapData {
     MemMapData(MemMapData const &) = delete;
     MemMapData & operator=(MemMapData const &) = delete;
 };
-
-constexpr MemMapData::handle_type kInvalidHandle = INVALID_HANDLE_VALUE;
 using MemMapTraits = BasicMemMapTraits<MemMapData>;
 
 template <>
