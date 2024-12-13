@@ -39,6 +39,19 @@ struct MemMapData {
     void *      p_data_      = nullptr;
     size_type   length_{};
     off_type    offset_{};
+
+    MemMapData & operator=(MemMapData && ot) {
+        file_handle_ = std::exchange(ot.file_handle_, INVALID_HANDLE_VALUE);
+        map_handle_  = std::exchange(ot.map_handle_, INVALID_HANDLE_VALUE);
+        p_data_ = std::exchange(ot.p_data_, nullptr);
+        length_ = std::exchange(ot.length_, 0);
+        offset_ = std::exchange(ot.offset_, 0);
+        return *this;
+    }
+
+    MemMapData(MemMapData &&) = delete;
+    MemMapData(MemMapData const &) = delete;
+    MemMapData & operator=(MemMapData const &) = delete;
 };
 
 static MemMapData::handle_type const kInvalidHandle = INVALID_HANDLE_VALUE;

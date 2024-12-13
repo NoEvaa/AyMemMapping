@@ -45,10 +45,16 @@ public:
 
     BasicFileMap() = default;
     ~BasicFileMap() { (void)unmap(); }
-    BasicFileMap(BasicFileMap &&);
-    BasicFileMap & operator=(BasicFileMap &&);
-    BasicFileMap(BasicFileMap const &) = delete;
-    BasicFileMap & operator=(BasicFileMap const &) = delete;
+
+    BasicFileMap(BasicFileMap && ot) { _move(std::move(ot)); }
+    BasicFileMap & operator=(BasicFileMap && ot) {
+        if (isMapped()) [[unlikely]] {
+            auto en = unmap();
+            if (en) { return *this; }
+        }
+        _move(std::move(ot));
+        return *this;
+    }
 
     errno_type map(path_cref, AccessFlag, size_type length = kInvalidSize, size_type offset = 0);
     errno_type map(handle_type const &, AccessFlag, size_type length = kInvalidSize, size_type offset = 0);
@@ -91,8 +97,20 @@ private:
             m_data.file_handle_ = kInvalidHandle;
         }
     }
+
+    void _move(BasicFileMap && ot) {
+        m_p_byte = std::exchange(ot.m_p_byte, nullptr);
+        m_length = std::exchange(ot.m_length, 0);
+        m_offset = std::exchange(ot.m_offset, 0);
+        m_b_internal_file = std::exchange(ot.m_b_internal_file, false);
+        m_data = std::move(ot.m_data);
+    }
+
     errno_type _mapImpl(AccessFlag, size_type, off_type);
     errno_type _mapFileImpl(AccessFlag, size_type, size_type);
+
+    BasicFileMap(BasicFileMap const &) = delete;
+    BasicFileMap & operator=(BasicFileMap const &) = delete;
 
 private:
     data_type m_data;
