@@ -89,6 +89,7 @@ template <>
 MemMapTraits::handle_type MemMapTraits::fileOpen(path_cref ph, AccessFlag access) {
     DWORD access_mode = bool(access & AccessFlag::_kWrite) ?
         GENERIC_READ | GENERIC_WRITE : GENERIC_READ;
+    if (bool(access & AccessFlag::kExec)) { access_mode |= GENERIC_EXECUTE; }
     DWORD create_mode = bool(access & AccessFlag::kCreate) ? OPEN_ALWAYS : OPEN_EXISTING;
     return ::CreateFileW(ph.c_str(), access_mode, FILE_SHARE_READ | FILE_SHARE_WRITE, 0,
                          create_mode, FILE_ATTRIBUTE_NORMAL, 0);
@@ -201,8 +202,8 @@ bool MemMapTraits::remap(data_type & d, size_type new_length) {
         b_result = false;
     } else if (p_old_data) {
         // copy old view of anonymous map
-        char * old_chars = reinterpret_cast<char *>(p_old_data);
-        char * new_chars = reinterpret_cast<char *>(d.p_data_);
+        auto old_chars = reinterpret_cast<char const *>(p_old_data);
+        auto new_chars = reinterpret_cast<char *>(d.p_data_);
         memcpy(new_chars, old_chars, old_length < new_length ? old_length : new_length);
     }
 

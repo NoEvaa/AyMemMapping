@@ -83,9 +83,7 @@ MemMapTraits::handle_type MemMapTraits::filenoToHandle(int fd) {
 template <>
 MemMapTraits::handle_type MemMapTraits::fileOpen(path_cref ph, AccessFlag access) {
     int mode = bool(access & AccessFlag::_kWrite) ? O_RDWR : O_RDONLY;
-    if (bool(access & AccessFlag::kCreate)) {
-        mode |= O_CREAT;
-    }
+    if (bool(access & AccessFlag::kCreate)) { mode |= O_CREAT; }
     return ::open(ph.c_str(), mode, 0777);
 }
 

@@ -13,7 +13,7 @@
 
 int main()
 {
-    std::locale::global(std::locale("en_US.UTF-8"));
+    //std::locale::global(std::locale("en_US.UTF-8"));
 
     using namespace aymmap;
 
@@ -31,12 +31,12 @@ int main()
     auto ph = fs::path(u8"你好.txt");
     AccessFlag flag = AccessFlag::kDefault;
     auto fd = MemMapTraits::fileOpen(ph, flag);
-    if (fd == -1) {
+    if (fd == kInvalidHandle) {
         std::cout << "file open failed" << std::endl;
         return -1;
     }
     
-    std::size_t f_size = 1024;
+    std::size_t f_size = 10;
     MemMapTraits::fileResize(fd, f_size);
     auto len = MemMapTraits::fileSize(fd);
 
@@ -50,10 +50,15 @@ int main()
     }
 
     char * mmapped = (char *)d.p_data_;
-    mmapped[0] = 'A';
+    std::string text = "1234567890";
+    std::copy_n(text.c_str(), text.size(), mmapped);
 
     if (!MemMapTraits::sync(d.p_data_, len)) {
         std::cout << "msync failed" << std::endl;
+    }
+
+    if (!MemMapTraits::remap(d, 5)) {
+        std::cout << "remap failed" << std::endl;
     }
 
     MemMapTraits::unmap(d);
