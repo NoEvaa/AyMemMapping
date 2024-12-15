@@ -181,12 +181,35 @@ bool MemMapTraits::unmap(data_type & d) {
     return true;
 }
 
+namespace detail {
+AccessFlag _getOldAccessFlag(MemMapTraits::data_type & d) {
+    MEMORY_BASIC_INFORMATION mbi;
+    if (!VirtualQuery(d.p_data_, &mbi, MemMapTraits::pageSize())) {
+        return AccessFlag::kDefault;
+    }
+    DWORD prot = mbi.AllocationProtect;
+    if (!prot) [[unlikely]] { return AccessFlag::kDefault; }
+    switch (prot) {
+    case PAGE_EXECUTE_READ: return AccessFlag::kReadExec;
+    case PAGE_EXECUTE_READWIRTE: return AccessFlag::kExec | AccessFlag::kWrite;
+    case PAGE_EXECUTE_WRITECOPY: return AccessFlag::kExec | AccessFlag::kWriteCopy;
+    case PAGE_EXECUTE_READONLY: return AccessFlag::kRead;
+    case PAGE_EXECUTE_READWRITE: return AccessFlag::kWrite;
+    case PAGE_EXECUTE_WRITECOPY: return AccessFlag::kWriteCopy;
+    default: return AccessFlag::kDefault;
+    }
+}
+}
+
 template <>
 bool MemMapTraits::remap(data_type & d, size_type new_length) {
     bool b_result = true;
+    auto access   = AccessFlag::kDefault;
     errno_type file_resize_err{0};
 
     if (d.file_handle_ != INVALID_HANDLE_VALUE) {
+        access = detail::_getOldAccessFlag(d);
+
         // unmap the view and resize the file
         if (!::UnmapViewOfFile(d.p_data_)) { return false; }
         d.p_data_ = nullptr;
@@ -212,7 +235,7 @@ bool MemMapTraits::remap(data_type & d, size_type new_length) {
     d.length_     = 0;
     d.offset_     = 0;
 
-    if (!map(d, AccessFlag::kDefault, new_length, offset)) {
+    if (!map(d, access, new_length, offset)) {
         b_result = false;
     } else if (p_old_data) {
         // copy old view of anonymous map
