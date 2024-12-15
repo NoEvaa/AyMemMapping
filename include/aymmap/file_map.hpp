@@ -119,8 +119,7 @@ private:
     BasicFileMap(BasicFileMap const &) = delete;
     BasicFileMap & operator=(BasicFileMap const &) = delete;
 
-//private:
-public:
+private:
     data_type m_data;
     pointer   m_p_byte = nullptr;
     size_type m_length = 0;
