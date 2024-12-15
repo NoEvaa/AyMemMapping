@@ -42,8 +42,9 @@ public:
 
     static constexpr errno_type kEnoOk = errno_type(0);
     static constexpr errno_type kEnoUnimpl = errno_type(-1);
-    static constexpr errno_type kEnoUnmapped = errno_type(-2);
-    static constexpr errno_type kEnoInviArgs = errno_type(-3);
+    static constexpr errno_type kEnoInviArgs = errno_type(-2);
+    static constexpr errno_type kEnoUnmapped = errno_type(-3);
+    static constexpr errno_type kEnoMapIsAnon = errno_type(-4);
 
     BasicFileMap() = default;
     ~BasicFileMap() { (void)unmap(); }
@@ -94,12 +95,11 @@ private:
     void _clear() noexcept {
         m_p_byte = nullptr;
         m_length = 0;
-        m_offset = 0;
     }
     void _reset() {
         _clear();
         if (m_b_internal_file) {
-            traits_type::closeFile(m_data.file_handle_);
+            traits_type::fileClose(m_data.file_handle_);
             m_b_internal_file = false;
         } else {
             m_data.file_handle_ = kInvalidHandle;
@@ -109,7 +109,6 @@ private:
     void _move(BasicFileMap && ot) {
         m_p_byte = std::exchange(ot.m_p_byte, nullptr);
         m_length = std::exchange(ot.m_length, 0);
-        m_offset = std::exchange(ot.m_offset, 0);
         m_b_internal_file = std::exchange(ot.m_b_internal_file, false);
         m_data = std::move(ot.m_data);
     }
@@ -120,11 +119,11 @@ private:
     BasicFileMap(BasicFileMap const &) = delete;
     BasicFileMap & operator=(BasicFileMap const &) = delete;
 
-private:
+//private:
+public:
     data_type m_data;
     pointer   m_p_byte = nullptr;
     size_type m_length = 0;
-    off_type  m_offset = 0;
     bool      m_b_internal_file = false;
 };
 
@@ -134,8 +133,7 @@ template <typename T, typename T2>
 BasicFileMap<T, T2>::errno_type BasicFileMap<T, T2>::map(path_cref ph,
     AccessFlag flag, size_type length, size_type offset) {
     if (isMapped()) [[unlikely]] {
-        auto en = unmap();
-        if (en) { return en; }
+        if (auto en = unmap()) { return en; }
     }
 
     auto file_handle = traits_type::fileOpen(ph, flag);
@@ -143,28 +141,26 @@ BasicFileMap<T, T2>::errno_type BasicFileMap<T, T2>::map(path_cref ph,
 
     m_data.file_handle_ = file_handle;
     m_b_internal_file   = true;
-    return _mapImpl(flag, length, offset);
+    return _mapFileImpl(flag, length, offset);
 }
 
 template <typename T, typename T2>
 BasicFileMap<T, T2>::errno_type BasicFileMap<T, T2>::map(handle_type file_handle,
     AccessFlag flag, size_type length, size_type offset) {
     if (isMapped()) [[unlikely]] {
-        auto en = unmap();
-        if (en) { return en; }
+        if (auto en = unmap()) { return en; }
     }
 
     if (!traits_type::checkHandle(file_handle)) [[unlikely]] { return kEnoInviArgs; }
 
     m_data.file_handle_ = file_handle;
-    return _mapImpl(flag, length, offset);
+    return _mapFileImpl(flag, length, offset);
 }
  
 template <typename T, typename T2>
 BasicFileMap<T, T2>::errno_type BasicFileMap<T, T2>::anonMap(size_type length) {
     if (isMapped()) [[unlikely]] {
-        auto en = unmap();
-        if (en) { return en; }
+        if (auto en = unmap()) { return en; }
     }
     m_data.file_handle_ = kInvalidHandle;
     return _mapImpl(AccessFlag::kDefault, length, 0);
@@ -181,8 +177,8 @@ BasicFileMap<T, T2>::errno_type BasicFileMap<T, T2>::_mapImpl(
         return en;
     }
     m_length = length;
-    m_offset = offset - aligned_offset;
-    m_p_byte = reinterpret_cast<pointer>(m_data.p_data_) + m_offset;
+    offset -= aligned_offset;
+    m_p_byte = reinterpret_cast<pointer>(m_data.p_data_) + offset;
     return en;
 }
 
@@ -222,19 +218,20 @@ template <typename T, typename T2>
 BasicFileMap<T, T2>::errno_type BasicFileMap<T, T2>::remap(
     AccessFlag flag, size_type length, size_type offset) {
     if (!isMapped()) [[unlikely]] { return kEnoUnmapped; }
-    auto en = _toErrno(traits_type::unmap(m_data));
-    if (en) { return en; };
+    if (isAnon()) [[unlikely]] { return kEnoMapIsAnon; }
+    if (!traits_type::unmap(m_data)) { return _toErrno(false); }
     return _toErrno(_mapFileImpl(flag, length, offset));
 }
 
 template <typename T, typename T2>
 BasicFileMap<T, T2>::errno_type BasicFileMap<T, T2>::resize(size_type new_length) {
     if (!isMapped()) [[unlikely]] { return kEnoUnmapped; }
-    auto mapped_length = new_length + size_type(m_offset);
+    auto offset = m_data.length_ - m_length;
+    auto mapped_length = new_length + offset;
     auto en = _toErrno(traits_type::remap(m_data), mapped_length);
     if (m_data.p_data_) {
-        m_p_byte = reinterpret_cast<pointer>(m_data.p_data_) + m_offset;
-        m_length = m_data.length_ - size_type(m_offset);
+        m_p_byte = reinterpret_cast<pointer>(m_data.p_data_) + offset;
+        m_length = m_data.length_ - offset;
     } else { _reset(); }
     return en;
 }

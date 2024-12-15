@@ -1,35 +1,42 @@
-#include <cstdint>
 #include <iostream>
-#include <system_error>
 #include <unistd.h>
-#include <locale>
 #include "aymmap/global.hpp"
-#include "aymmap/mman.hpp"
+#include "aymmap/aymmap.h"
 
 
 //using namespace iin;
 
 // 4567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890
 
+int main() {
+    using namespace aymmap;
+    using traits_type = FileMap::traits_type;
+
+    auto ph = fs::path("test.txt");
+    auto flag = AccessFlag::kDefault;
+
+    FileMap fmap;
+    std::cout << "map: " << fmap.map(ph, flag, 1024) << std::endl;
+    std::cout << fmap.size() << std::endl;
+    char * s = (char*)fmap.m_data.p_data_;
+    std::string text = "1234";
+    std::copy_n(text.c_str(), text.size(), s);
+    s[0] = '0';
+    std::cout << "flush: " << fmap.flush() << std::endl;
+    std::cout << "unmap: " << fmap.unmap() << std::endl;
+
+    FileUtils::removeFile(ph);
+
+    return 0;
+}
+
+#if 0
 int main()
 {
-    //std::locale::global(std::locale("en_US.UTF-8"));
-
     using namespace aymmap;
 
-    /*
-    auto ph1 = fs::path("111.txt");
-    auto fd1 = MemMapTraits::fileOpen(ph1, AccessFlag::kWrite);
-    if (fd1 == -1) {
-        std::cout << std::error_code(-1, std::system_category()).message() << std::endl;
-        std::cout << errno << std::endl;
-        std::cout << "file open failed" << std::endl;
-        return -1;
-    }
-    */
-
     auto ph = fs::path("你好.txt");
-    AccessFlag flag = AccessFlag::kDefault;
+    auto flag = AccessFlag::kDefault;
     auto fd = MemMapTraits::fileOpen(ph, flag);
     if (fd == kInvalidHandle) {
         std::cout << "file open failed" << std::endl;
@@ -66,4 +73,5 @@ int main()
     MemMapTraits::fileRemove(ph);
     return 0;
 }
+#endif
 

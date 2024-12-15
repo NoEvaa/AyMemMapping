@@ -16,6 +16,7 @@
 #pragma once
 
 #include <cstdint>
+#include <cassert>
 #include <type_traits>
 #include <filesystem>
 
