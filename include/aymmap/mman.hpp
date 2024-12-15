@@ -15,7 +15,6 @@
  */
 #pragma once
 
-#include <cstdint>
 #include <filesystem>
 
 #include "aymmap/global.hpp"
@@ -63,12 +62,4 @@ struct BasicMemMapTraits {
 #else
 #include "aymmap/detail/mman_unix.tcc"
 #endif
-
-namespace aymmap {
-namespace detail {
-inline std::int64_t alignToPageSize(std::int64_t i) {
-    return i & (~(MemMapTraits::pageSize() - 1));
-}
-}
-}
 

@@ -15,11 +15,29 @@
  */
 #pragma once
 
-#include "aymmap/global.hpp"
 #include "aymmap/mman.hpp"
 
 namespace aymmap {
-inline FileHandle toFileHandle(int fd) { return MemMapTraits::filenoToHandle(fd); }
-inline FileHandle toFileHandle(FILE * fi) { return toFileHandle(MemMapTraits::fileToFileno(fi)); }
+template <typename _Traits = MemMapTraits>
+class BasicFileUtils {
+public:
+    using traits_type = _Traits;
+    using handle_type = typename traits_type::handle_type;
+    using path_cref   = typename traits_type::path_cref;
+    using off_type    = typename traits_type::off_type;
+    using errno_type  = typename traits_type::errno_type;
+
+    static constexpr errno_type kEnoOk = errno_type(0);
+
+    static handle_type toFileHandle(int fd) { return traits_type::filenoToHandle(fd); }
+    static handle_type toFileHandle(FILE * fi) { return toFileHandle(traits_type::fileToFileno(fi)); }
+
+    static errno_type removeFile(path_cref ph) { return _toErrno(traits_type::fileRemove(ph)); }
+
+    static errno_type _toErrno(bool b) noexcept { return b ? kEnoOk : traits_type::lastErrno(); } 
+
+    static off_type pageSize() { return traits_type::pageSize(); }
+    static off_type alignToPageSize(off_type i) { return i & (~(pageSize() - 1)); }
+};
 }
 
