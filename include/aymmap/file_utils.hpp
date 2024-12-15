@@ -15,31 +15,29 @@
  */
 #pragma once
 
-#include "aymmap/file_map.hpp"
+#include "aymmap/mman.hpp"
 
 namespace aymmap {
-template <typename _FileMapT = FileMap>
-struct BasicFileUtils {
-    using file_map_type = _FileMapT;
-    using traits_type   = typename file_map_type::traits_type;
-    using handle_type   = typename file_map_type::handle_type;
-    using errno_type    = typename file_map_type::errno_type;
-    using path_cref     = typename file_map_type::path_cref;
+template <typename _Traits = MemMapTraits>
+class BasicFileUtils {
+public:
+    using traits_type = _Traits;
+    using handle_type = typename traits_type::handle_type;
+    using path_cref   = typename traits_type::path_cref;
+    using off_type    = typename traits_type::off_type;
+    using errno_type  = typename traits_type::errno_type;
 
-    static handle_type toFileHandle(int fd) {
-        return traits_type::filenoToHandle(fd);
-    }
+    static constexpr errno_type kEnoOk = errno_type(0);
 
-    static handle_type toFileHandle(FILE * fi) {
-        return toFileHandle(traits_type::fileToFileno(fi));
-    }
+    static handle_type toFileHandle(int fd) { return traits_type::filenoToHandle(fd); }
+    static handle_type toFileHandle(FILE * fi) { return toFileHandle(traits_type::fileToFileno(fi)); }
 
-    static errno_type removeFile(path_cref ph) {
-        return traits_type::fileRemove(ph) ?
-            file_map_type::kEnoOk : traits_type::lastErrno();
-    }
+    static errno_type removeFile(path_cref ph) { return _toErrno(traits_type::fileRemove(ph)); }
 
+    static errno_type _toErrno(bool b) noexcept { return b ? kEnoOk : traits_type::lastErrno(); } 
+
+    static off_type pageSize() { return traits_type::pageSize(); }
+    static off_type alignToPageSize(off_type i) { return i & (~(pageSize() - 1)); }
 };
-using FileUtils = BasicFileUtils<FileMap>;
 }
 

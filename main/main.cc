@@ -12,20 +12,20 @@ int main() {
     using namespace aymmap;
     using traits_type = FileMap::traits_type;
 
-    auto ph = fs::path("test.txt");
+    auto ph = fs::path("./build/test.txt");
     auto flag = AccessFlag::kDefault;
 
     FileMap fmap;
     std::cout << "map: " << fmap.map(ph, flag, 1024) << std::endl;
     std::cout << fmap.size() << std::endl;
-    char * s = (char*)fmap.m_data.p_data_;
+    char * s = fmap.data();
     std::string text = "1234";
     std::copy_n(text.c_str(), text.size(), s);
     s[0] = '0';
     std::cout << "flush: " << fmap.flush() << std::endl;
     std::cout << "unmap: " << fmap.unmap() << std::endl;
 
-    FileUtils::removeFile(ph);
+    FileMap::removeFile(ph);
 
     return 0;
 }
