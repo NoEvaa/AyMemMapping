@@ -24,6 +24,7 @@
 #include <cstdio>
 #include <cerrno>
 #include <unistd.h>
+#include <fcntl.h>
 #include <sys/mman.h>
 #include <sys/stat.h>
 
@@ -48,6 +49,7 @@ struct MemMapData {
     off_type    offset_{};
 
     MemMapData() = default;
+    ~MemMapData() = default;
 
     MemMapData & operator=(MemMapData && ot) {
         file_handle_ = std::exchange(ot.file_handle_, kInvalidHandle);
@@ -76,6 +78,11 @@ MemMapTraits::off_type MemMapTraits::pageSize() {
 template <>
 bool MemMapTraits::checkHandle(handle_type handle) {
     return (handle != kInvalidHandle);
+}
+
+template <>
+MemMapTraits::handle_type MemMapTraits::dupHandle(handle_type handle) {
+    return fcntl(handle, F_DUPFD_CLOEXEC, 0);
 }
 
 template <>

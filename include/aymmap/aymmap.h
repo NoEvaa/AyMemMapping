@@ -17,8 +17,9 @@
 
 #include "aymmap/config.h"
 #include "aymmap/global.hpp"
-#include "aymmap/file_map.hpp"
 #include "aymmap/file_utils.hpp"
+#include "aymmap/mmap_file.hpp"
+#include "aymmap/mmap_file_buf.hpp"
 
 namespace iin {
 //using namespace aymmap;

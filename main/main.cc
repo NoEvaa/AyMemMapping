@@ -1,38 +1,20 @@
 #include <iostream>
-#include <unistd.h>
+#include <system_error>
 #include "aymmap/global.hpp"
 #include "aymmap/aymmap.h"
-
-
-//using namespace iin;
+#include "aymmap/mmap_file.hpp"
 
 // 4567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890
 
-int main() {
-    using namespace aymmap;
-    using traits_type = FileMap::traits_type;
+template <>
+class aymmap::MMapFileMagic<int> {
+public:
+    void call(aymmap::MMapFile & fi) {
+        std::cout << fi.m_length << std::endl;
+    }
+};
 
-    auto ph = fs::path("./build/test.txt");
-    auto flag = AccessFlag::kDefault;
-
-    FileMap fmap;
-    std::cout << "map: " << fmap.map(ph, flag, 1024) << std::endl;
-    std::cout << fmap.size() << std::endl;
-    char * s = fmap.data();
-    std::string text = "1234";
-    std::copy_n(text.c_str(), text.size(), s);
-    s[0] = '0';
-    std::cout << "flush: " << fmap.flush() << std::endl;
-    std::cout << "unmap: " << fmap.unmap() << std::endl;
-
-    FileMap::removeFile(ph);
-
-    return 0;
-}
-
-#if 0
-int main()
-{
+int case1() {
     using namespace aymmap;
 
     auto ph = fs::path("你好.txt");
@@ -73,5 +55,36 @@ int main()
     MemMapTraits::fileRemove(ph);
     return 0;
 }
-#endif
+
+int case2() {
+    using namespace aymmap;
+    using traits_type = MMapFile::traits_type;
+
+    auto ph = fs::path("./build/test.txt");
+    auto flag = AccessFlag::kDefault;
+
+    MMapFile fmap;
+    if (auto en = fmap.map(ph, flag, 1024)) {
+        std::cout << "map: " << en << " "
+            << std::error_code{en, std::system_category()}
+            << std::endl;
+    }
+
+    MMapFileMagic<int>().call(fmap);
+    std::cout << "size: " << fmap.size() << std::endl;
+
+    char * s = fmap.data();
+    std::string text = "1234";
+    std::copy_n(text.c_str(), text.size(), s);
+    s[0] = '0';
+
+    std::cout << "flush: " << fmap.flush() << std::endl;
+    std::cout << "unmap: " << fmap.unmap() << std::endl;
+    MMapFile::removeFile(ph);
+    return 0;
+}
+
+int main() {
+    return case2();
+}
 

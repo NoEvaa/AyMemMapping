@@ -18,10 +18,10 @@
 #include "aymmap/mman.hpp"
 
 namespace aymmap {
-template <typename _Traits = MemMapTraits>
-class BasicFileUtils {
+template <typename _TraitsT = MemMapTraits>
+class FileUtils {
 public:
-    using traits_type = _Traits;
+    using traits_type = _TraitsT;
     using handle_type = typename traits_type::handle_type;
     using path_cref   = typename traits_type::path_cref;
     using off_type    = typename traits_type::off_type;
@@ -38,6 +38,10 @@ public:
 
     static off_type pageSize() { return traits_type::pageSize(); }
     static off_type alignToPageSize(off_type i) { return i & (~(pageSize() - 1)); }
+
+    template <typename __T>
+    static constexpr bool can_be_file_handle_v = std::is_void_v<std::void_t<
+        decltype(toFileHandle(std::declval<__T>()))>>;
 };
 }
 
