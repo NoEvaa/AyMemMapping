@@ -38,6 +38,10 @@ public:
 
     static off_type pageSize() { return traits_type::pageSize(); }
     static off_type alignToPageSize(off_type i) { return i & (~(pageSize() - 1)); }
+
+    template <typename __T>
+    static constexpr bool can_be_file_handle_v = std::is_void_v<std::void_t<
+        decltype(toFileHandle(std::declval<__T>()))>>;
 };
 }
 
