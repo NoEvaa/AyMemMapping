@@ -15,3 +15,5 @@
  */
 #pragma once
 
+#define AYMMAP_ENABLE_MMAP_FILE_MAGIC
+

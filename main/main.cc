@@ -2,8 +2,17 @@
 #include <system_error>
 #include "aymmap/global.hpp"
 #include "aymmap/aymmap.h"
+#include "aymmap/mmap_file.hpp"
 
 // 4567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890
+
+template <>
+class aymmap::MMapFileMagic<int> {
+public:
+    void call(aymmap::MMapFile & fi) {
+        std::cout << fi.m_length << std::endl;
+    }
+};
 
 int case1() {
     using namespace aymmap;
@@ -61,6 +70,7 @@ int case2() {
             << std::endl;
     }
 
+    MMapFileMagic<int>().call(fmap);
     std::cout << "size: " << fmap.size() << std::endl;
 
     char * s = fmap.data();
