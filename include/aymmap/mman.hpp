@@ -36,6 +36,7 @@ struct BasicMemMapTraits {
     static off_type pageSize();
 
     static bool checkHandle(handle_type);
+    static handle_type dupHandle(handle_type);
 
     static size_type fileSize(handle_type);
     static int fileToFileno(FILE *);

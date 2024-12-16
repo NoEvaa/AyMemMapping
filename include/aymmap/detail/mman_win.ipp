@@ -43,6 +43,9 @@ struct MemMapData {
     size_type   length_{};
     off_type    offset_{};
 
+    MemMapData() = default;
+    ~MemMapData() = default;
+
     MemMapData & operator=(MemMapData && ot) {
         file_handle_ = std::exchange(ot.file_handle_, kInvalidHandle);
         map_handle_  = std::exchange(ot.map_handle_, kInvalidHandle);
@@ -77,6 +80,18 @@ MemMapTraits::off_type MemMapTraits::pageSize() {
 template <>
 bool MemMapTraits::checkHandle(handle_type handle) {
     return (handle != kInvalidHandle) && (handle != NULL);
+}
+
+template <>
+MemMapTraits::handle_type MemMapTraits::dupHandle(handle_type handle) {
+    handle_type new_handle = kInvalidHandle;
+    if (!DuplicateHandle(
+        GetCurrentProcess(), handle,
+        GetCurrentProcess(), new_handle,
+        0, false, DUPLICATE_SAME_ACCESS)) {
+        return kInvalidHandle;
+    }
+    return new_handle;
 }
 
 template <>
@@ -151,9 +166,12 @@ bool MemMapTraits::map(data_type & d, AccessFlag access, size_type length, off_t
         detail::int64High(length), detail::int64Low(length), 0);
     if (!checkHandle(map_handle)) { return false; }
 
-    prot = bool(access & AccessFlag::_kWrite) ? FILE_MAP_WRITE : FILE_MAP_READ;
-    if (bool(access & AccessFlag::kCopy)) { prot |= FILE_MAP_COPY; }
-    if (bool(access & AccessFlag::kExec)) { prot |= FILE_MAP_EXECUTE; }
+    if (bool(access & AccessFlag::kCopy)) {
+        prot = FILE_MAP_COPY;
+    } else {
+        prot = bool(access & AccessFlag::_kWrite) ? FILE_MAP_WRITE : FILE_MAP_READ;
+        if (bool(access & AccessFlag::kExec)) { prot |= FILE_MAP_EXECUTE; }
+    }
 
     void * p_map = ::MapViewOfFile(map_handle, prot,
         detail::int64High(offset), detail::int64Low(offset), length);
@@ -182,7 +200,7 @@ bool MemMapTraits::unmap(data_type & d) {
 }
 
 namespace detail {
-AccessFlag _getOldAccessFlag(MemMapTraits::data_type & d) {
+inline AccessFlag _getOldAccessFlag(MemMapTraits::data_type & d) {
     MEMORY_BASIC_INFORMATION mbi;
     if (!VirtualQuery(d.p_data_, &mbi, MemMapTraits::pageSize())) {
         return AccessFlag::kDefault;
@@ -190,13 +208,20 @@ AccessFlag _getOldAccessFlag(MemMapTraits::data_type & d) {
     DWORD prot = mbi.AllocationProtect;
     if (!prot) [[unlikely]] { return AccessFlag::kDefault; }
     switch (prot) {
-    case PAGE_EXECUTE_READ: return AccessFlag::kReadExec;
-    case PAGE_EXECUTE_READWIRTE: return AccessFlag::kExec | AccessFlag::kWrite;
-    case PAGE_EXECUTE_WRITECOPY: return AccessFlag::kExec | AccessFlag::kWriteCopy;
-    case PAGE_EXECUTE_READONLY: return AccessFlag::kRead;
-    case PAGE_EXECUTE_READWRITE: return AccessFlag::kWrite;
-    case PAGE_EXECUTE_WRITECOPY: return AccessFlag::kWriteCopy;
-    default: return AccessFlag::kDefault;
+        case PAGE_EXECUTE_READ:
+            return AccessFlag::kReadExec;
+        case PAGE_EXECUTE_READWRITE:
+            return AccessFlag::kExec | AccessFlag::kWrite;
+        case PAGE_EXECUTE_WRITECOPY:
+            return AccessFlag::kExec | AccessFlag::kWriteCopy;
+        case PAGE_READONLY:
+            return AccessFlag::kRead;
+        case PAGE_READWRITE:
+            return AccessFlag::kWrite;
+        case PAGE_WRITECOPY:
+            return AccessFlag::kWriteCopy;
+        default:
+            return AccessFlag::kDefault;
     }
 }
 }

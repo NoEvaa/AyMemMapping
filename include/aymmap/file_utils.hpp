@@ -18,10 +18,10 @@
 #include "aymmap/mman.hpp"
 
 namespace aymmap {
-template <typename _Traits = MemMapTraits>
-class BasicFileUtils {
+template <typename _TraitsT = MemMapTraits>
+class FileUtils {
 public:
-    using traits_type = _Traits;
+    using traits_type = _TraitsT;
     using handle_type = typename traits_type::handle_type;
     using path_cref   = typename traits_type::path_cref;
     using off_type    = typename traits_type::off_type;
