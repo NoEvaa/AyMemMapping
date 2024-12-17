@@ -66,7 +66,7 @@ struct MemMapData {
     MemMapData() = default;
     ~MemMapData() = default;
 
-    MemMapData & operator=(MemMapData && ot) {
+    MemMapData & operator=(MemMapData && ot) noexcept {
         file_handle_ = std::exchange(ot.file_handle_, kInvalidHandle);
         p_data_ = std::exchange(ot.p_data_, nullptr);
         length_ = std::exchange(ot.length_, 0);

@@ -69,7 +69,7 @@ public:
     BasicMMapFile() = default;
     ~BasicMMapFile() { unmap(); }
 
-    BasicMMapFile(BasicMMapFile && ot) { _move(std::move(ot)); }
+    BasicMMapFile(BasicMMapFile && ot) noexcept { _move(std::move(ot)); }
     BasicMMapFile & operator=(BasicMMapFile && ot) {
         if (isMapped()) [[unlikely]] { if (unmap()) { return *this; } }
         _move(std::move(ot));
@@ -98,12 +98,14 @@ public:
 
     bool isMapped() const noexcept { return bool(m_p_byte); }
     bool isAnon() const noexcept { return isMapped() && (m_data.file_handle_ == kInvalidHandle); }
-    bool empty() { return size() == 0; }
+    bool empty() const noexcept { return size() == 0; }
 
     size_type size() const noexcept { return m_length; }
     pointer       data() noexcept { return m_p_byte; }
     const_pointer data() const noexcept { return m_p_byte; }
     const_pointer c_str() const noexcept { return m_p_byte; }
+
+    handle_type fileHandle() noexcept { return m_data.file_handle_; }
 
     iterator       begin() noexcept { return data(); }
     const_iterator begin() const noexcept { return data(); }
@@ -124,7 +126,7 @@ public:
 
 private:
     void _reset();
-    void _move(BasicMMapFile && ot) {
+    void _move(BasicMMapFile && ot) noexcept {
         m_p_byte = std::exchange(ot.m_p_byte, nullptr);
         m_length = std::exchange(ot.m_length, 0);
         m_b_internal_file = std::exchange(ot.m_b_internal_file, false);
@@ -180,17 +182,22 @@ BasicMMapFile<T, T2, T3>::errno_type BasicMMapFile<T, T2, T3>::_mapImpl(
     return en;
 }
 
+namespace detail {
+inline bool _enableResize(AccessFlag flag) noexcept {
+    return (flag & AccessFlag::kResize) == AccessFlag::kResize;
+}
+}
+
 template <typename T, typename T2, typename T3>
 BasicMMapFile<T, T2, T3>::errno_type BasicMMapFile<T, T2, T3>::_mapFileImpl(
     AccessFlag flag, size_type length, size_type offset) {
     auto const file_sz = traits_type::fileSize(m_data.file_handle_);
+    if (file_sz <= offset) [[unlikely]] { return kEnoInviArgs; }
     if (length == kInvalidSize) {
-        assert(offset <= file_sz);
         length = file_sz - offset;
-    } else if (length + offset > file_sz) {
-        if (!bool(flag & AccessFlag::_kWrite) ||
+    } else if (file_sz - offset < length) {
+        if (!detail::_enableResize(flag) ||
             !traits_type::fileResize(m_data.file_handle_, length + offset)) {
-            assert(offset <= file_sz);
             length = file_sz - offset;
         }
     }
