@@ -23,25 +23,18 @@ class FileUtils {
 public:
     using traits_type = _TraitsT;
     using handle_type = typename traits_type::handle_type;
-    using path_cref   = typename traits_type::path_cref;
     using off_type    = typename traits_type::off_type;
     using errno_type  = typename traits_type::errno_type;
 
     static constexpr errno_type kEnoOk = errno_type(0);
 
-    static handle_type toFileHandle(int fd) { return traits_type::filenoToHandle(fd); }
-    static handle_type toFileHandle(FILE * fi) { return toFileHandle(traits_type::fileToFileno(fi)); }
-
-    static errno_type removeFile(path_cref ph) { return _toErrno(traits_type::fileRemove(ph)); }
+    template <typename FileT>
+    static handle_type toFileHandle(FileT fi) { return FileHandleConverter<FileT>::convert(fi); }
 
     static errno_type _toErrno(bool b) noexcept { return b ? kEnoOk : traits_type::lastErrno(); } 
 
     static off_type pageSize() { return traits_type::pageSize(); }
     static off_type alignToPageSize(off_type i) { return i & (~(pageSize() - 1)); }
-
-    template <typename __T>
-    static constexpr bool can_be_file_handle_v = std::is_void_v<std::void_t<
-        decltype(toFileHandle(std::declval<__T>()))>>;
 };
 }
 

@@ -32,6 +32,29 @@ namespace aymmap {
 using FileHandle = HANDLE;
 static FileHandle const kInvalidHandle = INVALID_HANDLE_VALUE;
 
+template <> class FileHandleConverter<FileHandle> {
+public:
+    static FileHandle convert(FileHandle handle) noexcept {
+        return handle;
+    }
+};
+
+template <> class FileHandleConverter<int> {
+public:
+    static FileHandle convert(int fd) {
+        if (fd < 0) [[unlikely]] { return kInvalidHandle; }
+        return (FileHandle)_get_osfhandle(fd);
+    }
+};
+
+template <> class FileHandleConverter<FILE *> {
+public:
+    static FileHandle convert(FILE * fi) {
+        if (!fi) [[unlikely]] { return kInvalidHandle; }
+        return FileHandleConverter<int>::convert(_fileno(fi));
+    }
+};
+
 struct MemMapData {
     using handle_type = FileHandle;
     using size_type   = std::size_t;
@@ -87,7 +110,7 @@ MemMapTraits::handle_type MemMapTraits::dupHandle(handle_type handle) {
     handle_type new_handle = kInvalidHandle;
     if (!DuplicateHandle(
         GetCurrentProcess(), handle,
-        GetCurrentProcess(), new_handle,
+        GetCurrentProcess(), &new_handle,
         0, false, DUPLICATE_SAME_ACCESS)) {
         return kInvalidHandle;
     }
@@ -99,16 +122,6 @@ MemMapTraits::size_type MemMapTraits::fileSize(handle_type handle) {
     LARGE_INTEGER file_sz;
     if(::GetFileSizeEx(handle, &file_sz) == 0) { return 0U; }
     return static_cast<size_type>(file_sz.QuadPart);
-}
-
-template <>
-int MemMapTraits::fileToFileno(FILE * fi) {
-    return _fileno(fi);
-}
-
-template <>
-MemMapTraits::handle_type MemMapTraits::filenoToHandle(int fd) {
-    return (handle_type)_get_osfhandle(fd);
 }
 
 /**
@@ -127,11 +140,6 @@ MemMapTraits::handle_type MemMapTraits::fileOpen(path_cref ph, AccessFlag access
 template <>
 bool MemMapTraits::fileClose(handle_type handle) {
     return ::CloseHandle(handle);
-}
-
-template <>
-bool MemMapTraits::fileRemove(path_cref ph) {
-    return ::DeleteFileW(ph.c_str());
 }
 
 template <>

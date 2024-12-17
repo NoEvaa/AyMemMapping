@@ -17,3 +17,7 @@
 
 #include "aymmap/mmap_file.hpp"
 
+namespace aymmap {
+class MMapFileBuf {};
+}
+

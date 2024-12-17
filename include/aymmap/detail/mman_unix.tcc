@@ -38,6 +38,21 @@ namespace aymmap {
 using FileHandle = int;
 static constexpr FileHandle kInvalidHandle = INVALID_HANDLE_VALUE;
 
+template <> class FileHandleConverter<FileHandle> {
+public:
+    static FileHandle convert(FileHandle handle) noexcept {
+        return handle;
+    }
+};
+
+template <> class FileHandleConverter<FILE *> {
+public:
+    static FileHandle convert(FILE * fi) {
+        if (!fi) [[unlikely]] { return kInvalidHandle; }
+        return FileHandleConverter<int>::convert(fileno(fi));
+    }
+};
+
 struct MemMapData {
     using handle_type = FileHandle;
     using size_type   = std::size_t;
@@ -93,16 +108,6 @@ MemMapTraits::size_type MemMapTraits::fileSize(handle_type handle) {
 }
 
 template <>
-int MemMapTraits::fileToFileno(FILE * fi) {
-    return fileno(fi);
-}
-
-template <>
-MemMapTraits::handle_type MemMapTraits::filenoToHandle(int fd) {
-    return fd;
-}
-
-template <>
 MemMapTraits::handle_type MemMapTraits::fileOpen(path_cref ph, AccessFlag access) {
     int mode = bool(access & AccessFlag::_kWrite) ? O_RDWR : O_RDONLY;
     if (bool(access & AccessFlag::kCreate)) { mode |= O_CREAT; }
@@ -112,11 +117,6 @@ MemMapTraits::handle_type MemMapTraits::fileOpen(path_cref ph, AccessFlag access
 template <>
 bool MemMapTraits::fileClose(handle_type handle) {
     return ::close(handle) == 0;
-}
-
-template <>
-bool MemMapTraits::fileRemove(path_cref ph) {
-    return ::remove(ph.c_str()) == 0;
 }
 
 template <>
