@@ -120,11 +120,6 @@ bool MemMapTraits::fileClose(handle_type handle) {
 }
 
 template <>
-bool MemMapTraits::fileRemove(path_cref ph) {
-    return ::remove(ph.c_str()) == 0;
-}
-
-template <>
 bool MemMapTraits::fileResize(handle_type handle, size_type new_size) {
     return ::ftruncate(handle, new_size) == 0;
 }

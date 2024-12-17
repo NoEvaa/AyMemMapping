@@ -23,7 +23,6 @@ class FileUtils {
 public:
     using traits_type = _TraitsT;
     using handle_type = typename traits_type::handle_type;
-    using path_cref   = typename traits_type::path_cref;
     using off_type    = typename traits_type::off_type;
     using errno_type  = typename traits_type::errno_type;
 
@@ -31,8 +30,6 @@ public:
 
     template <typename FileT>
     static handle_type toFileHandle(FileT fi) { return FileHandleConverter<FileT>::convert(fi); }
-
-    static errno_type removeFile(path_cref ph) { return _toErrno(traits_type::fileRemove(ph)); }
 
     static errno_type _toErrno(bool b) noexcept { return b ? kEnoOk : traits_type::lastErrno(); } 
 

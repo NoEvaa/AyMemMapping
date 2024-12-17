@@ -88,6 +88,7 @@ public:
 
     errno_type unmap();
     errno_type flush();
+    errno_type sync(size_type offset, size_type length);
     errno_type remap(AccessFlag, size_type length, size_type offset);
     errno_type resize(size_type new_length);
     errno_type lock();
@@ -118,7 +119,7 @@ public:
     const_reverse_iterator rend() const noexcept { return const_reverse_iterator(begin()); }
     const_reverse_iterator crend() const noexcept { return rend(); }
 
-    byte_type & operator[](size_type i) noexcept { return m_p_byte[i]; }
+    byte_type &       operator[](size_type i) noexcept { return m_p_byte[i]; }
     byte_type const & operator[](size_type i) const noexcept { return m_p_byte[i]; }
 
 private:
@@ -223,7 +224,18 @@ BasicMMapFile<T, T2, T3>::errno_type BasicMMapFile<T, T2, T3>::unmap() {
 template <typename T, typename T2, typename T3>
 BasicMMapFile<T, T2, T3>::errno_type BasicMMapFile<T, T2, T3>::flush() {
     if (!isMapped()) [[unlikely]] { return kEnoUnmapped; }
+    if (isAnon()) [[unlikely]] { return kEnoMapIsAnon; }
     return _toErrno(traits_type::sync(m_data.p_data_, m_data.length_));
+}
+
+template <typename T, typename T2, typename T3>
+BasicMMapFile<T, T2, T3>::errno_type BasicMMapFile<T, T2, T3>::sync(
+    size_type offset, size_type length) {
+    if (!isMapped()) [[unlikely]] { return kEnoUnmapped; }
+    if (isAnon()) [[unlikely]] { return kEnoMapIsAnon; }
+    if (m_length <= offset) [[unlikely]] { return kEnoInviArgs; }
+    if (m_length - offset < length) [[unlikely]] { length = m_length - offset; }
+    return _toErrno(traits_type::sync(m_p_byte + offset, length));
 }
 
 template <typename T, typename T2, typename T3>

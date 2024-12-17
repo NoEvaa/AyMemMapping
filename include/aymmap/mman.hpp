@@ -42,7 +42,6 @@ struct BasicMemMapTraits {
     static size_type fileSize(handle_type);
     static handle_type fileOpen(path_cref, AccessFlag);
     static bool fileClose(handle_type);
-    static bool fileRemove(path_cref);
     static bool fileResize(handle_type, size_type new_size);
 
     static bool map(data_type &, AccessFlag, size_type length, off_type offset);

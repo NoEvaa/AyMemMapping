@@ -143,11 +143,6 @@ bool MemMapTraits::fileClose(handle_type handle) {
 }
 
 template <>
-bool MemMapTraits::fileRemove(path_cref ph) {
-    return ::DeleteFileW(ph.c_str());
-}
-
-template <>
 bool MemMapTraits::fileResize(handle_type handle, size_type new_size) {
     LARGE_INTEGER li;
     li.QuadPart = new_size;
