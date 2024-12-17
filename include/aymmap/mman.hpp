@@ -20,6 +20,8 @@
 #include "aymmap/global.hpp"
 
 namespace aymmap {
+template <typename> class FileHandleConverter;
+
 template <typename T>
 struct BasicMemMapTraits {
     using data_type   = T;
@@ -27,9 +29,8 @@ struct BasicMemMapTraits {
     using size_type   = typename data_type::size_type;
     using off_type    = typename data_type::off_type;
 
-    using path_type   = fs::path;
-    using path_cref   = path_type const &;
-
+    using path_type  = fs::path;
+    using path_cref  = path_type const &;
     using errno_type = int;
 
     static errno_type lastErrno();
@@ -39,8 +40,6 @@ struct BasicMemMapTraits {
     static handle_type dupHandle(handle_type);
 
     static size_type fileSize(handle_type);
-    static int fileToFileno(FILE *);
-    static handle_type filenoToHandle(int fd);
     static handle_type fileOpen(path_cref, AccessFlag);
     static bool fileClose(handle_type);
     static bool fileRemove(path_cref);

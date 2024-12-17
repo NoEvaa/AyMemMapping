@@ -38,6 +38,21 @@ namespace aymmap {
 using FileHandle = int;
 static constexpr FileHandle kInvalidHandle = INVALID_HANDLE_VALUE;
 
+template <> class FileHandleConverter<FileHandle> {
+public:
+    static FileHandle convert(FileHandle handle) noexcept {
+        return handle;
+    }
+};
+
+template <> class FileHandleConverter<FILE *> {
+public:
+    static FileHandle convert(FILE * fi) {
+        if (!fi) [[unlikely]] { return kInvalidHandle; }
+        return FileHandleConverter<int>::convert(fileno(fi));
+    }
+};
+
 struct MemMapData {
     using handle_type = FileHandle;
     using size_type   = std::size_t;
@@ -90,16 +105,6 @@ MemMapTraits::size_type MemMapTraits::fileSize(handle_type handle) {
     struct stat st;
     if (::fstat(handle, &st) == -1) { return 0U; }
     return static_cast<std::size_t>(st.st_size);
-}
-
-template <>
-int MemMapTraits::fileToFileno(FILE * fi) {
-    return fileno(fi);
-}
-
-template <>
-MemMapTraits::handle_type MemMapTraits::filenoToHandle(int fd) {
-    return fd;
 }
 
 template <>

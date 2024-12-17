@@ -7,7 +7,7 @@
 // 4567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890
 
 template <>
-class aymmap::MMapFileMagic<int> {
+class aymmap::MMapFileFriend<int> {
 public:
     void call(aymmap::MMapFile & fi) {
         std::cout << fi.m_length << std::endl;
@@ -70,7 +70,7 @@ int case2() {
             << std::endl;
     }
 
-    MMapFileMagic<int>().call(fmap);
+    MMapFileFriend<int>().call(fmap);
     std::cout << "size: " << fmap.size() << std::endl;
 
     char * s = fmap.data();
