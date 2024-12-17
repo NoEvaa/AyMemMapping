@@ -1,5 +1,7 @@
 #include <iostream>
 
+
+#define AYMMAP_ENABLE_MMAP_FILE_FRIEND
 #include "aymmap/aymmap.h"
 
 using namespace aymmap;

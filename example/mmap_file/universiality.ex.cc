@@ -32,6 +32,7 @@ int main() {
             << errMsg(en) << std::endl;
         return -1;
     }
+    std::cout << "Map size after resize: " << mmfi.size() << std::endl;
 
     if (auto en = mmfi.flush()) {
         std::cout << "File flush failed: [" << en << "] "
