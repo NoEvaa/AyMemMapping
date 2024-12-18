@@ -2,7 +2,7 @@
 
 
 #define AYMMAP_ENABLE_MMAP_FILE_FRIEND
-#include "aymmap/aymmap.h"
+#include "aymmap/aymmap.hpp"
 
 using namespace aymmap;
 

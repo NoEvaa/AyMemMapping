@@ -15,7 +15,5 @@
  */
 #pragma once
 
-#include "aymmap/config.h"
-#include "aymmap/global.hpp"
-#include "aymmap/file.h"
+//#define AYMMAP_ENABLE_MMAP_FILE_FRIEND
 

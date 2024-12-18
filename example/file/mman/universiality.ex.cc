@@ -1,6 +1,6 @@
 #include <iostream>
 
-#include "aymmap/aymmap.h"
+#include "aymmap/aymmap.hpp"
 
 using namespace aymmap;
 
