@@ -253,8 +253,12 @@ errno_t BasicMMapFile<T, T2, T3>::remap(
     AccessFlag flag, size_type length, size_type offset) {
     if (!isMapped()) [[unlikely]] { return kEnoUnmapped; }
     if (isAnon()) [[unlikely]] { return kEnoMapIsAnon; }
+
     if (!traits_type::unmap(m_data)) { return _throwErrno(false); }
-    return _mapFileImpl(flag, length, offset);
+
+    auto en = _mapFileImpl(flag, length, offset);
+    if (en) { _reset(); }
+    return en;
 }
 
 template <typename T, typename T2, typename T3>
