@@ -47,6 +47,13 @@ inline constexpr _enum_tp operator~(_enum_tp e) {                               
 }                                                                                                  \
 
 namespace aymmap {
+using errno_t = int;
+constexpr errno_t kEnoOk = errno_t(0);
+constexpr errno_t kEnoUnimpl = errno_t(-1);
+constexpr errno_t kEnoInviArgs = errno_t(-2);
+constexpr errno_t kEnoUnmapped = errno_t(-3);
+constexpr errno_t kEnoMapIsAnon = errno_t(-4);
+
 namespace fs = std::filesystem;
 
 enum class AccessFlag : std::uint32_t {

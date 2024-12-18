@@ -28,7 +28,7 @@
 #include <sys/mman.h>
 #include <sys/stat.h>
 
-#include "aymmap/mman.hpp"
+#include "aymmap/file/mman.hpp"
 
 #ifndef INVALID_HANDLE_VALUE
 #define INVALID_HANDLE_VALUE (-1)
@@ -81,9 +81,7 @@ struct MemMapData {
 using MemMapTraits = BasicMemMapTraits<MemMapData>;
 
 template <>
-MemMapTraits::errno_type MemMapTraits::lastErrno() {
-    return errno;
-}
+errno_t MemMapTraits::lastErrno() { return errno; }
 
 template <>
 MemMapTraits::off_type MemMapTraits::pageSize() {

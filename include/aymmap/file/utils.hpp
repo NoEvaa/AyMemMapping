@@ -15,7 +15,7 @@
  */
 #pragma once
 
-#include "aymmap/mman.hpp"
+#include "aymmap/file/mman.hpp"
 
 namespace aymmap {
 template <typename _TraitsT = MemMapTraits>
@@ -23,15 +23,25 @@ class FileUtils {
 public:
     using traits_type = _TraitsT;
     using handle_type = typename traits_type::handle_type;
+    using size_type   = typename traits_type::size_type;
     using off_type    = typename traits_type::off_type;
-    using errno_type  = typename traits_type::errno_type;
-
-    static constexpr errno_type kEnoOk = errno_type(0);
 
     template <typename FileT>
-    static handle_type toFileHandle(FileT fi) { return FileHandleConverter<FileT>::convert(fi); }
+    static handle_type toFileHandle(FileT fi) {
+        return FileHandleConverter<std::decay_t<FileT>>::convert(fi);
+    }
 
-    static errno_type _toErrno(bool b) noexcept { return b ? kEnoOk : traits_type::lastErrno(); } 
+    static size_type fileSize(handle_type handle) {
+        return traits_type::fileSize(handle);
+    }
+
+    static bool _ableToResize(AccessFlag flag) noexcept {
+        return (flag & AccessFlag::kResize) == AccessFlag::kResize;
+    }
+
+    static errno_t _throwErrno(bool b) noexcept {
+        return b ? kEnoOk : traits_type::lastErrno();
+    } 
 
     static off_type pageSize() { return traits_type::pageSize(); }
     static off_type alignToPageSize(off_type i) { return i & (~(pageSize() - 1)); }

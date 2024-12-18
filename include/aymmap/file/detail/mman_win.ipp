@@ -26,7 +26,7 @@
 #include <windows.h>
 #include <io.h>
 
-#include "aymmap/mman.hpp"
+#include "aymmap/file/mman.hpp"
 
 namespace aymmap {
 using FileHandle = HANDLE;
@@ -85,11 +85,11 @@ struct MemMapData {
 using MemMapTraits = BasicMemMapTraits<MemMapData>;
 
 namespace detail {
-void _setLastErrno(MemMapTraits::errno_type en) { SetLastError(en); }
+void _setLastErrno(errno_t en) { SetLastError(en); }
 }
 
 template <>
-MemMapTraits::errno_type MemMapTraits::lastErrno() {
+errno_t MemMapTraits::lastErrno() {
     return GetLastError();
 }
 
