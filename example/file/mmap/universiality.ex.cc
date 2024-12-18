@@ -4,7 +4,7 @@
 
 using namespace aymmap;
 
-std::string errMsg(MMapFile::errno_type en) {
+std::string errMsg(errno_t en) {
     return std::error_code{en, std::system_category()}.message();
 }
 

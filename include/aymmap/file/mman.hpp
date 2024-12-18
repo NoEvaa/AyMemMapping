@@ -31,9 +31,8 @@ struct BasicMemMapTraits {
 
     using path_type  = fs::path;
     using path_cref  = path_type const &;
-    using errno_type = int;
 
-    static errno_type lastErrno();
+    static errno_t lastErrno();
     static off_type pageSize();
 
     static bool checkHandle(handle_type);
@@ -57,8 +56,8 @@ struct BasicMemMapTraits {
 }
 
 #ifdef _AYMMAP_WIN
-#include "aymmap/detail/mman_win.ipp"
+#include "aymmap/file/detail/mman_win.ipp"
 #else
-#include "aymmap/detail/mman_unix.tcc"
+#include "aymmap/file/detail/mman_unix.tcc"
 #endif
 

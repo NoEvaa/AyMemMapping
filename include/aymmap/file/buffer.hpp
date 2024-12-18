@@ -15,7 +15,7 @@
  */
 #pragma once
 
-#include "aymmap/mmap_file.hpp"
+#include "aymmap/file/mmap.hpp"
 
 namespace aymmap {
 class MMapFileBuf {};
