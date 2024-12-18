@@ -15,10 +15,7 @@
  */
 #pragma once
 
-#include "aymmap/config.h"
+#include "aymmap/config.hpp"
 #include "aymmap/global.hpp"
-#include "aymmap/file/mman.hpp"
-#include "aymmap/file/utils.hpp"
-#include "aymmap/file/mmap.hpp"
-#include "aymmap/file/buffer.hpp"
+#include "aymmap/file.hpp"
 

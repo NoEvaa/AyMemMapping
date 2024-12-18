@@ -20,7 +20,7 @@
 #include <type_traits>
 #include <filesystem>
 
-#include "aymmap/config.h"
+#include "aymmap/config.hpp"
 
 #if defined(_WIN32) || defined(__WIN32__) || defined(WIN32) || defined(__NT__)
 #define _AYMMAP_WIN

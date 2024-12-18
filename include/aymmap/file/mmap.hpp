@@ -98,7 +98,7 @@ public:
     const_pointer data() const noexcept { return m_p_byte; }
     const_pointer c_str() const noexcept { return m_p_byte; }
 
-    handle_type fileHandle() noexcept { return m_data.file_handle_; }
+    handle_type fileHandle() const noexcept { return m_data.file_handle_; }
 
     iterator       begin() noexcept { return data(); }
     const_iterator begin() const noexcept { return data(); }
@@ -126,7 +126,7 @@ private:
         m_data = std::move(ot.m_data);
     }
 
-    bool _isAnon() const noexcept { return m_data.file_handle_ == kInvalidHandle; }
+    bool _isAnon() const noexcept { return fileHandle() == kInvalidHandle; }
 
     errno_t _mapImpl(AccessFlag, size_type, off_type);
     errno_t _mapFileImpl(AccessFlag, size_type, size_type);
@@ -210,7 +210,8 @@ errno_t BasicMMapFile<T, T2, T3>::_mapFileImpl(
 }
 
 template <typename T, typename T2, typename T3>
-errno_t BasicMMapFile<T, T2, T3>::_mapImpl(AccessFlag flag, size_type length, off_type offset) {
+errno_t BasicMMapFile<T, T2, T3>::_mapImpl(
+    AccessFlag flag, size_type length, off_type offset) {
     off_type  aligned_offset = utils_type::alignToPageSize(offset);
     size_type mapped_length  = size_type(offset - aligned_offset) + length;
     auto en = _throwErrno(traits_type::map(m_data, flag, mapped_length, aligned_offset));
@@ -252,8 +253,12 @@ errno_t BasicMMapFile<T, T2, T3>::remap(
     AccessFlag flag, size_type length, size_type offset) {
     if (!isMapped()) [[unlikely]] { return kEnoUnmapped; }
     if (isAnon()) [[unlikely]] { return kEnoMapIsAnon; }
+
     if (!traits_type::unmap(m_data)) { return _throwErrno(false); }
-    return _mapFileImpl(flag, length, offset);
+
+    auto en = _mapFileImpl(flag, length, offset);
+    if (en) { _reset(); }
+    return en;
 }
 
 template <typename T, typename T2, typename T3>
