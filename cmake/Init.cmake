@@ -14,6 +14,9 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 # fPIC
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
+# Unicode
+add_definitions(-DUNICODE -D_UNICODE)
+
 # Init build type
 if(NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE Debug)

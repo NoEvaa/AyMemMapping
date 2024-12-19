@@ -1,10 +1,22 @@
-#include <filesystem>
-#include <iostream>
-#include <system_error>
-#include "aymmap/aymmap.hpp"
-#include "aymmap/global.hpp"
+/**
+ * Copyright 2024 NoEvaa
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
-// 4567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890
+#include <iostream>
+
+#include "aymmap/aymmap.hpp"
 
 using namespace aymmap;
 
@@ -23,7 +35,7 @@ void printMap(MMapFile & mmfi) {
 }
 
 int createAndWriteFile() {
-    std::cout << "Write file..." << std::endl;
+    std::cout << "- Write file..." << std::endl;
 
     auto * fi = ::fopen("test.txt", "wb+");
     if (!fi) { return -1; }
@@ -51,7 +63,7 @@ int createAndWriteFile() {
 }
 
 int readFile() {
-    std::cout << "Read file..." << std::endl;
+    std::cout << "- Read file..." << std::endl;
 
     auto * fi = ::fopen("test.txt", "rb");
     if (!fi) { return -1; }
@@ -63,36 +75,38 @@ int readFile() {
         ::fclose(fi);
         return -1;
     }
+    ::fclose(fi);
     assert(mmfi.isMapped());
 
     printMap(mmfi);
 
     mmfi.unmap();
-    ::fclose(fi);
     return 0;
 }
 
 int modifyFile() {
-    std::cout << "Modify file..." << std::endl;
+    std::cout << "- Modify file..." << std::endl;
 
     auto * fi = ::fopen("test.txt", "rb+");
     if (!fi) { return -1; }
 
     MMapFile mmfi;
+    bool b_dup_handle = false;
+    // resize the file when open
     if (auto en = mmfi.fileMap(fi,
-        AccessFlag::kWrite | AccessFlag::kResize,
-        true, 5)) {
+        AccessFlag::kReadWrite | AccessFlag::kResize,
+        b_dup_handle, 5)) {
         std::cout << "File map failed: [" << en << "] "
             << errMsg(en) << std::endl;
         ::fclose(fi);
         return -1;
     }
-    ::fclose(fi);
     assert(mmfi.isMapped());
 
     printMap(mmfi);
 
     mmfi.unmap();
+    ::fclose(fi);
     return 0;
 }
 
@@ -103,5 +117,4 @@ int main() {
     fs::remove("test.txt");
     return 0;
 }
-
 
