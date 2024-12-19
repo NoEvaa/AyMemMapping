@@ -43,4 +43,8 @@ if(${PROJECT_NAME}_IS_MAIN)
         enable_testing()
         add_subdirectory(tests)
     endif()
+    # Examples
+    if(${PROJECT_NAME}_ENABLE_EXAMPLES)
+        add_subdirectory(examples)
+    endif()
 endif()
