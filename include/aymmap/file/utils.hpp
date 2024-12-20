@@ -35,8 +35,12 @@ public:
         return traits_type::fileSize(handle);
     }
 
-    static bool _ableToResize(AccessFlag flag) noexcept {
+    static bool _mustToResize(AccessFlag flag) noexcept {
         return (flag & AccessFlag::kResize) == AccessFlag::kResize;
+    }
+
+    static bool _ableToResize(AccessFlag flag) noexcept {
+        return bool(flag & AccessFlag::_kWrite) && bool(flag & AccessFlag::kCreate);
     }
 
     static errno_t _throwErrno(bool b) noexcept {

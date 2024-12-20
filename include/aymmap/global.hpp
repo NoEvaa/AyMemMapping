@@ -67,7 +67,7 @@ enum class AccessFlag : std::uint32_t {
     kResize  = _kResize | _kWrite,
     kNoAccess = 0x0040,
 
-    kDefault   = kWrite | kCreate | kResize,
+    kDefault   = kWrite | kCreate,
     kReadOnly  = kRead,
     kReadWrite = kWrite,
     kWriteCopy = kWrite | kCopy,
