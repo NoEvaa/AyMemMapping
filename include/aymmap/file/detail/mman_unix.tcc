@@ -101,7 +101,10 @@ MemMapTraits::handle_type MemMapTraits::dupHandle(handle_type handle) {
 template <>
 MemMapTraits::size_type MemMapTraits::fileSize(handle_type handle) {
     struct stat st;
-    if (::fstat(handle, &st) == -1) { return 0U; }
+    if (::fstat(handle, &st) == -1) {
+        AYMMAP_DEBUG("Failed to query the file size.");
+        return 0U;
+    }
     return static_cast<std::size_t>(st.st_size);
 }
 

@@ -192,20 +192,28 @@ errno_t BasicMMapFile<T, T2, T3>::_fileMap(handle_type file_handle,
 template <typename T, typename T2, typename T3>
 errno_t BasicMMapFile<T, T2, T3>::_mapFileImpl(
     AccessFlag flag, size_type length, size_type offset) {
-    auto const file_sz = utils_type::fileSize(m_data.file_handle_);
+    auto file_sz = utils_type::fileSize(m_data.file_handle_);
+
     if (length == kInvalidSize) {
         if (file_sz <= offset) [[unlikely]] { return kEnoInviArgs; }
         length = file_sz - offset;
-    } else if (utils_type::_ableToResize(flag) && !_isAnon()) {
-        if (length == 0) [[unlikely]] { return kEnoInviArgs; }
+    } else if (length == 0) [[unlikely]] {
+        return kEnoInviArgs;
+    } else if (utils_type::_mustToResize(flag)) {
         if (!traits_type::fileResize(m_data.file_handle_, length + offset)) {
             return _throwErrno(false);
         }
-    } else if (file_sz <= offset) [[unlikely]] {
-        return kEnoInviArgs;
-    } else if (file_sz - offset < length) {
-        length = file_sz - offset;
+    } else if (length + offset > file_sz) {
+        if (utils_type::_ableToResize(flag) && 
+            traits_type::fileResize(m_data.file_handle_, length + offset)) {
+            file_sz = length + offset;
+        } else if (file_sz <= offset) [[unlikely]] {
+            return kEnoInviArgs;
+        } else if (file_sz - offset < length) {
+            length = file_sz - offset;
+        }
     }
+
     return _mapImpl(flag, length, (off_type)offset);
 }
 
@@ -264,6 +272,7 @@ errno_t BasicMMapFile<T, T2, T3>::remap(
 template <typename T, typename T2, typename T3>
 errno_t BasicMMapFile<T, T2, T3>::resize(size_type new_length) {
     if (!isMapped()) [[unlikely]] { return kEnoUnmapped; }
+    if (new_length == m_length) [[unlikely]] { return kEnoOk; }
     auto offset = m_data.length_ - m_length;
     auto mapped_length = new_length + offset;
     auto en = _throwErrno(traits_type::remap(m_data, mapped_length));

@@ -15,16 +15,18 @@
  */
 #pragma once
 
-#ifdef AYMMAP_DISABLE_LOG
-#    ifdef _AYMMAP_ENABLE_LOG
-#        undef _AYMMAP_ENABLE_LOG
-#    endif
-#else
-#    define _AYMMAP_ENABLE_LOG 1
-#    ifndef AYMMAP_DISABLE_LOG_FMT
-#        define _AYMMAP_ENABLE_LOG_FMT 1
-#    endif
-#endif
+#include <source_location>
 
-//#define AYMMAP_ENABLE_MMAP_FILE_FRIEND
+#include "aymmap/detail/log.hpp"
+
+namespace aymmap {
+template <>
+struct LogFmt<std::source_location> {
+    std::ostream & output(std::ostream & ost, std::source_location const & v) {
+        ost << '[' << v.file_name() << '(' << v.line() << ")]["
+            << v.function_name() << ']';
+        return ost;
+    }
+};
+}
 

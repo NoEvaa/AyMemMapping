@@ -15,16 +15,13 @@
  */
 #pragma once
 
-#ifdef AYMMAP_DISABLE_LOG
-#    ifdef _AYMMAP_ENABLE_LOG
-#        undef _AYMMAP_ENABLE_LOG
-#    endif
-#else
-#    define _AYMMAP_ENABLE_LOG 1
-#    ifndef AYMMAP_DISABLE_LOG_FMT
-#        define _AYMMAP_ENABLE_LOG_FMT 1
-#    endif
-#endif
+namespace aymmap {
+using errno_t = int;
 
-//#define AYMMAP_ENABLE_MMAP_FILE_FRIEND
+constexpr errno_t kEnoOk = errno_t(0);
+constexpr errno_t kEnoUnimpl = errno_t(-1);
+constexpr errno_t kEnoInviArgs = errno_t(-2);
+constexpr errno_t kEnoUnmapped = errno_t(-3);
+constexpr errno_t kEnoMapIsAnon = errno_t(-4);
+}
 

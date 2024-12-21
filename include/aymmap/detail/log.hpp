@@ -15,16 +15,24 @@
  */
 #pragma once
 
-#ifdef AYMMAP_DISABLE_LOG
-#    ifdef _AYMMAP_ENABLE_LOG
-#        undef _AYMMAP_ENABLE_LOG
-#    endif
-#else
-#    define _AYMMAP_ENABLE_LOG 1
-#    ifndef AYMMAP_DISABLE_LOG_FMT
-#        define _AYMMAP_ENABLE_LOG_FMT 1
-#    endif
-#endif
+#include <iostream>
+#include <type_traits>
 
-//#define AYMMAP_ENABLE_MMAP_FILE_FRIEND
+namespace aymmap {
+template <typename T>
+struct LogFmt {
+    std::ostream & output(std::ostream & ost, T const & v) {
+        return (ost << v);
+    }
+};
+
+struct LogTime {};
+
+namespace detail {
+template <typename... Ts>
+void logOutput(Ts... vs) {
+    (LogFmt<std::decay_t<Ts>>().output(std::cerr, vs), ...) << std::endl;
+}
+}
+}
 
