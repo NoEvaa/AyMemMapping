@@ -272,6 +272,7 @@ errno_t BasicMMapFile<T, T2, T3>::remap(
 template <typename T, typename T2, typename T3>
 errno_t BasicMMapFile<T, T2, T3>::resize(size_type new_length) {
     if (!isMapped()) [[unlikely]] { return kEnoUnmapped; }
+    if (new_length == m_length) [[unlikely]] { return kEnoOk; }
     auto offset = m_data.length_ - m_length;
     auto mapped_length = new_length + offset;
     auto en = _throwErrno(traits_type::remap(m_data, mapped_length));

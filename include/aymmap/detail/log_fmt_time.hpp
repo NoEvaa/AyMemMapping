@@ -15,16 +15,21 @@
  */
 #pragma once
 
-#ifdef AYMMAP_DISABLE_LOG
-#    ifdef _AYMMAP_ENABLE_LOG
-#        undef _AYMMAP_ENABLE_LOG
-#    endif
-#else
-#    define _AYMMAP_ENABLE_LOG 1
-#    ifndef AYMMAP_DISABLE_LOG_FMT
-#        define _AYMMAP_ENABLE_LOG_FMT 1
-#    endif
-#endif
+#include <chrono>
+#include <ctime>
+#include <iomanip>
 
-//#define AYMMAP_ENABLE_MMAP_FILE_FRIEND
+#include "aymmap/detail/log.hpp"
+
+namespace aymmap {
+template <>
+struct LogFmt<LogTime> {
+    std::ostream & output(std::ostream & ost, LogTime v) {
+        auto now   = std::chrono::system_clock::now();
+        auto now_c = std::chrono::system_clock::to_time_t(now);
+        ost << std::put_time(std::localtime(&now_c), "[%Y-%m-%d %H:%M:%S]");
+        return ost;
+    }
+};
+}
 

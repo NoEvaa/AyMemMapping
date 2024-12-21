@@ -15,4 +15,24 @@
  */
 #pragma once
 
+#include <iostream>
+#include <type_traits>
+
+namespace aymmap {
+template <typename T>
+struct LogFmt {
+    std::ostream & output(std::ostream & ost, T const & v) {
+        return (ost << v);
+    }
+};
+
+struct LogTime {};
+
+namespace detail {
+template <typename... Ts>
+void logOutput(Ts... vs) {
+    (LogFmt<std::decay_t<Ts>>().output(std::cerr, vs), ...) << std::endl;
+}
+}
+}
 

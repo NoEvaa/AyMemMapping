@@ -20,11 +20,11 @@
 #include <type_traits>
 #include <filesystem>
 
+#define AYMMAP_VERSION "0.0.0"
+
 #include "aymmap/config.hpp"
 #include "aymmap/detail/errno.hpp"
-#include "aymmap/detail/log.hpp"
-
-#define AYMMAP_VERSION "0.0.0"
+#include "aymmap/log.hpp"
 
 #if defined(_WIN32) || defined(__WIN32__) || defined(WIN32) || defined(__NT__)
 #define _AYMMAP_WIN

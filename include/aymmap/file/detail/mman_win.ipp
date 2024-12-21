@@ -120,7 +120,10 @@ MemMapTraits::handle_type MemMapTraits::dupHandle(handle_type handle) {
 template <>
 MemMapTraits::size_type MemMapTraits::fileSize(handle_type handle) {
     LARGE_INTEGER file_sz;
-    if(::GetFileSizeEx(handle, &file_sz) == 0) { return 0U; }
+    if(::GetFileSizeEx(handle, &file_sz) == 0) {
+        AYMMAP_DEBUG("Failed to query the file size.");
+        return 0U;
+    }
     return static_cast<size_type>(file_sz.QuadPart);
 }
 
