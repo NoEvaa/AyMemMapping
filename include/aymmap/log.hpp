@@ -20,16 +20,23 @@
 #include "aymmap/detail/log_fmt_time.hpp"
 #include "aymmap/detail/log_fmt_src_loc.hpp"
 
-#define AYMMAP_DEBUG(...) AYMMAP_LOG(AYMMAP_LOG_TIME, AYMMAP_LOG_SRC_LOC, "[DEBUG] ", __VA_ARGS__)
-#define AYMMAP_WARN(...)  AYMMAP_LOG(AYMMAP_LOG_TIME, "[WARN] ", __VA_ARGS__)
-#define AYMMAP_ERROR(...) AYMMAP_LOG(AYMMAP_LOG_TIME, "[ERROR] ", __VA_ARGS__)
-
-#ifdef _AYMMAP_ENABLE_LOG
-#define AYMMAP_LOG(...) aymmap::detail::logOutput(__VA_ARGS__)
-#else
-#define AYMMAP_LOG(...) static_cast<void>(0)
-#endif
+#define AYMMAP_LOG(...)   _AYMMAP_LOG(__VA_ARGS__)
+#define AYMMAP_WARN(...)  _AYMMAP_LOG(AYMMAP_LOG_TIME, "[WARN] ", __VA_ARGS__)
+#define AYMMAP_ERROR(...) _AYMMAP_LOG(AYMMAP_LOG_TIME, "[ERROR] ", __VA_ARGS__)
+#define AYMMAP_DEBUG(...) _AYMMAP_LOG_DEBUG(AYMMAP_LOG_TIME, AYMMAP_LOG_SRC_LOC, "[DEBUG] ", __VA_ARGS__)
 
 #define AYMMAP_LOG_SRC_LOC std::source_location::current()
 #define AYMMAP_LOG_TIME    aymmap::LogTime{}
+
+#ifdef _AYMMAP_ENABLE_LOG
+#define _AYMMAP_LOG(...) aymmap::detail::logOutput(__VA_ARGS__)
+#else
+#define _AYMMAP_LOG(...) static_cast<void>(0)
+#endif
+
+#ifdef _DEBUG
+#define _AYMMAP_LOG_DEBUG(...) aymmap::detail::logOutput(__VA_ARGS__)
+#else
+#define _AYMMAP_LOG_DEBUG(...) static_cast<void>(0)
+#endif
 
