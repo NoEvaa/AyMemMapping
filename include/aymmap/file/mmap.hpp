@@ -60,7 +60,7 @@ public:
     static constexpr size_type kInvalidSize = static_cast<size_type>(-1);
 
     BasicMMapFile() = default;
-    ~BasicMMapFile() { unmap(); }
+    ~BasicMMapFile() noexcept { unmap(); }
 
     BasicMMapFile(BasicMMapFile && ot) noexcept { _move(std::move(ot)); }
     BasicMMapFile & operator=(BasicMMapFile && ot) {
