@@ -25,6 +25,7 @@ class BasicMMapFileBuf {
 public:
     using file_type     = FileT;
     using size_type     = typename file_type::size_type;
+    using off_type      = typename file_type::off_type;
     using byte_type     = typename file_type::byte_type;
     using pointer       = typename file_type::pointer;
     using const_pointer = typename file_type::const_pointer;
@@ -33,21 +34,45 @@ public:
 
     static constexpr auto npos = static_cast<size_type>(-1);
 
-    BasicMMapFileBuf(file_type && fi) noexcept : m_file(std::move(fi)), m_pos(0) {}
+    enum class BufPos {
+        kBeg = 0,
+        kEnd,
+        kCur
+    };
+
+    BasicMMapFileBuf() = default;
     ~BasicMMapFileBuf() = default;
+    explicit BasicMMapFileBuf(file_type && fi) noexcept : m_file(std::move(fi)), m_pos(0) {}
     BasicMMapFileBuf(BasicMMapFileBuf && ot) noexcept { _move(std::move(ot)); }
     BasicMMapFileBuf & operator=(BasicMMapFileBuf && ot) noexcept {
         _move(std::move(ot));
         return *this;
     }
 
-    file_type &       getMMap() noexcept { return m_file; }
-    file_type const & getMMap() const noexcept { return m_file; }
+    file_type &       getFile() noexcept { return m_file; }
+    file_type const & getFile() const noexcept { return m_file; }
+    void setFile(file_type && fi) noexcept {
+        m_file = std::move(fi);
+        m_pos  = 0;
+    } 
 
     bool isEOF() const noexcept { return m_pos < m_file.size(); }
     size_type tell() const noexcept { return m_pos; }
-    size_type seek(size_type pos) noexcept {
-        m_pos = pos > m_file.size() ? m_file.size() : pos;
+
+    size_type seek(off_type pos, BufPos whence = BufPos::kCur) noexcept {
+        switch (whence) {
+        case BufPos::kBeg:
+            m_pos = pos;
+            break;
+        case BufPos::kEnd:
+            m_pos = m_file.size() + pos;
+            break;
+        case BufPos::kCur:
+        default:
+            m_pos += pos;
+            break;
+        }
+        if (m_pos > m_file.size()) { m_pos = m_file.size(); }
         return m_pos;
     }
 
@@ -67,7 +92,8 @@ public:
         if (isEOF()) [[unlikely]] { return view_type{}; }
         size_type length = 0;
         auto p = m_file.data() + m_pos;
-        while (length + m_pos < m_file.size()) {
+        auto const max_len = m_file.size() - m_pos;
+        while (length < max_len) {
             if (*(p + length) == sep) {
                 ++length;
                 break;
@@ -79,7 +105,12 @@ public:
     }
 
     byte_type readByte() noexcept {
-        return isEOF() ? static_cast<byte_type>(0) : m_file.data()[m_pos++];
+        return isEOF() ? byte_type{0} : m_file.data()[m_pos++];
+    }
+
+    size_type _write(const_pointer bytes, size_type length) noexcept {
+        std::copy_n(bytes, length, m_file.data() + m_pos);
+        m_pos += length;
     }
 
     size_type write(const_pointer bytes, size_type length) noexcept {
@@ -87,8 +118,7 @@ public:
         if (m_pos + length >= m_file.size()) {
             length = m_file.size() - m_pos;
         }
-        std::copy_n(bytes, length, m_file.data() + m_pos);
-        m_pos += length;
+        _write(bytes, length);
         return length;
     }
 
@@ -101,7 +131,7 @@ public:
 private:
     void _move(BasicMMapFileBuf && ot) noexcept {
         m_file = std::move(ot.m_file);
-        m_pos = std::move(ot.m_pos);
+        m_pos  = std::exchange(ot.m_pos, 0);
     }
 
     BasicMMapFileBuf(BasicMMapFileBuf const &) = delete;
