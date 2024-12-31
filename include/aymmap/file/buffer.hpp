@@ -17,6 +17,7 @@
 
 #include <cstring>
 #include <string_view>
+#include <utility>
 
 #include "aymmap/file/mmap.hpp"
 
@@ -50,16 +51,21 @@ public:
         return *this;
     }
 
-    file_type &       getFile() noexcept { return m_file; }
+    file_type & getFile() noexcept { return m_file; }
     file_type const & getFile() const noexcept { return m_file; }
-    void setFile(file_type && fi) noexcept {
+    void pushFile(file_type && fi) noexcept {
         m_file = std::move(fi);
         m_pos  = 0;
     } 
+    file_type popFile() noexcept {
+        m_pos = 0;
+        return std::exchange(m_file, file_type{});
+    }
 
     bool isEOF() const noexcept { return m_pos < size(); }
     size_type size() const noexcept { return m_file.size(); }
     size_type tell() const noexcept { return m_pos; }
+    size_type remaining() const noexcept { return tell() < size() ? size() - tell() : 0; }
 
     size_type seek(off_type pos, BufPos whence = BufPos::kCur) noexcept {
         switch (whence) {
@@ -80,9 +86,9 @@ public:
 
     void flush() { m_file.flush(); }
 
-    view_type read(size_type length) noexcept {
+    view_type read(size_type length = npos) noexcept {
         if (isEOF()) [[unlikely]] { return view_type{}; }
-        if (m_pos + length >= size()) {
+        if (m_pos + length > size()) {
             length = size() - m_pos;
         }
         auto p = m_file.data() + m_pos;
@@ -117,7 +123,7 @@ public:
 
     size_type write(const_pointer bytes, size_type length) noexcept {
         if (isEOF()) [[unlikely]] { return 0; }
-        if (m_pos + length >= size()) {
+        if (m_pos + length > size()) {
             length = size() - m_pos;
         }
         _write(bytes, length);

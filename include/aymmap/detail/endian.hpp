@@ -45,8 +45,8 @@ inline constexpr T byteswap(T n) noexcept {
 }
 }
 
-template <endian tgt>
-inline constexpr auto autoFixEndian(auto n) noexcept {
+template <endian tgt, typename T>
+inline constexpr T autoFitEndian(T n) noexcept {
     if constexpr (tgt == endian::native) {
         return n;
     } else {

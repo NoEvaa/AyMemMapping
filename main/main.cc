@@ -21,6 +21,9 @@ auto tt2() {
 }
 
 int main() {
+    std::cout << int(endian::native) << std::endl;
+    std::cout << int(endian::big) << std::endl;
+    std::cout << int(endian::little) << std::endl;
 
     int max_i = 10000000;
     int j = 0;
