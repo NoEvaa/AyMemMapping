@@ -15,6 +15,7 @@
  */
 #pragma once
 
+#include <cstring>
 #include <string_view>
 
 #include "aymmap/file/mmap.hpp"
@@ -56,7 +57,8 @@ public:
         m_pos  = 0;
     } 
 
-    bool isEOF() const noexcept { return m_pos < m_file.size(); }
+    bool isEOF() const noexcept { return m_pos < size(); }
+    size_type size() const noexcept { return m_file.size(); }
     size_type tell() const noexcept { return m_pos; }
 
     size_type seek(off_type pos, BufPos whence = BufPos::kCur) noexcept {
@@ -65,14 +67,14 @@ public:
             m_pos = pos;
             break;
         case BufPos::kEnd:
-            m_pos = m_file.size() + pos;
+            m_pos = size() + pos;
             break;
         case BufPos::kCur:
         default:
             m_pos += pos;
             break;
         }
-        if (m_pos > m_file.size()) { m_pos = m_file.size(); }
+        if (m_pos > size()) { m_pos = size(); }
         return m_pos;
     }
 
@@ -80,8 +82,8 @@ public:
 
     view_type read(size_type length) noexcept {
         if (isEOF()) [[unlikely]] { return view_type{}; }
-        if (m_pos + length >= m_file.size()) {
-            length = m_file.size() - m_pos;
+        if (m_pos + length >= size()) {
+            length = size() - m_pos;
         }
         auto p = m_file.data() + m_pos;
         m_pos += length;
@@ -92,7 +94,7 @@ public:
         if (isEOF()) [[unlikely]] { return view_type{}; }
         size_type length = 0;
         auto p = m_file.data() + m_pos;
-        auto const max_len = m_file.size() - m_pos;
+        auto const max_len = size() - m_pos;
         while (length < max_len) {
             if (*(p + length) == sep) {
                 ++length;
@@ -109,14 +111,14 @@ public:
     }
 
     size_type _write(const_pointer bytes, size_type length) noexcept {
-        std::copy_n(bytes, length, m_file.data() + m_pos);
+        std::memcpy(m_file.data() + m_pos, bytes, length);
         m_pos += length;
     }
 
     size_type write(const_pointer bytes, size_type length) noexcept {
         if (isEOF()) [[unlikely]] { return 0; }
-        if (m_pos + length >= m_file.size()) {
-            length = m_file.size() - m_pos;
+        if (m_pos + length >= size()) {
+            length = size() - m_pos;
         }
         _write(bytes, length);
         return length;
