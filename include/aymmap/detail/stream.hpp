@@ -17,6 +17,7 @@
 
 #include <algorithm>
 #include <type_traits>
+#include <concepts>
 
 #include "aymmap/detail/endian.hpp"
 
@@ -35,6 +36,8 @@ public:
 
     enum class Status {
         kOk = 0,
+        kReadFailed,
+        kWriteFailed,
     };
 
     BasicMMapStream() = default;
@@ -51,8 +54,58 @@ public:
     void pushBuffer(buffer_type && buf) noexcept { m_buf = std::move(buf); } 
     buffer_type popBuffer() noexcept { return std::exchange(m_buf, buffer_type{}); }
 
-    size_type read(pointer data, size_type length = npos) noexcept { return m_buf.read(data, length); }
-    size_type write(const_pointer data, size_type length) noexcept { return m_buf.write(data, length); }
+    void setStatus(Status st) noexcept { m_st = st; }
+    Status getStatus() const noexcept { return m_st; }
+
+    size_type read(pointer data, size_type length = npos) noexcept {
+        if (_check()) [[unlikely]] { return 0; }
+        return m_buf.read(data, length);
+    }
+
+    size_type write(const_pointer data, size_type length) noexcept {
+        if (_check()) [[unlikely]] { return 0; }
+        return m_buf.write(data, length);
+    }
+
+    template <std::integral T>
+    BasicMMapStream & operator>>(T & i) {
+        if (read(reinterpret_cast<pointer>(&i), sizeof(T)) != sizeof(T)) {
+            setStatus(Status::kReadFailed);
+            i = T{0};
+        } else {
+            i = autoFitEndian<_endian>(i);
+        }
+        return *this;
+    }
+
+    template <std::floating_point T>
+    BasicMMapStream & operator>>(T & f) {
+        if (read(reinterpret_cast<pointer>(&f), sizeof(T)) != sizeof(T)) {
+            setStatus(Status::kReadFailed);
+            f = T{0.0};
+        } else {
+            f = autoFitEndian<_endian>(f);
+        }
+        return *this;
+    }
+
+    template <std::integral T>
+    BasicMMapStream & operator<<(T i) {
+        i = autoFitEndian<_endian>(i);
+        if (write((pointer)&i, sizeof(T)) != sizeof(T)) {
+            setStatus(Status::kWriteFailed);
+        }
+        return *this;
+    }
+
+    template <std::floating_point T>
+    BasicMMapStream & operator<<(T f) {
+        f = autoFitEndian<_endian>(f);
+        if (write((pointer)&f, sizeof(T)) != sizeof(T)) {
+            setStatus(Status::kWriteFailed);
+        }
+        return *this;
+    }
 
     template <typename Fn, typename = std::invoke_result_t<Fn, BasicMMapStream &>>
     BasicMMapStream & operator<<(Fn __pf) {
@@ -64,6 +117,11 @@ private:
     void _move(BasicMMapStream && ot) noexcept {
         m_buf = std::move(ot.m_buf);
         m_st  = std::exchange(ot.m_st, Status::kOk);
+    }
+
+    bool _check() noexcept {
+        if (getStatus() != Status::kOk) [[unlikely]] { return true; }
+        return false;
     }
 
     BasicMMapStream(BasicMMapStream const &) = delete;

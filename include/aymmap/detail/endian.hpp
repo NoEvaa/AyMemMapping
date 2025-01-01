@@ -16,6 +16,7 @@
 #pragma once
 
 #include <type_traits>
+#include <concepts>
 #include <bit>
 
 namespace aymmap {
@@ -39,9 +40,22 @@ inline constexpr uint64_t byteswap(uint64_t n) noexcept {
         | ((n & UINT64_C(0xff00000000000000)) >> 56);
 }
 
-template <typename T>
+template <std::integral T>
 inline constexpr T byteswap(T n) noexcept {
     return T(byteswap(std::make_unsigned_t<T>(n)));
+}
+
+template <std::floating_point T>
+inline constexpr T byteswap(T n) noexcept {
+    using uint_type = std::conditional_t<std::is_same_v<T, double>, uint64_t, uint32_t>;
+    static_assert(sizeof(T) == sizeof(uint_type));
+    union {
+        T         val1;
+        uint_type val2;
+    } x;
+    x.val1 = n;
+    x.val2 = byteswap(x.val2);
+    return x.val1;
 }
 }
 

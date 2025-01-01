@@ -1,3 +1,4 @@
+#include <concepts>
 #include <cstdint>
 #include <iostream>
 #include <source_location>
@@ -25,7 +26,13 @@ auto ttd(auto d) {
 }
 
 int main() {
-    std::cout << std::endl;
+    double dd = 1.23;
+    std::cout << *(double*)(uint64_t*)&dd << std::endl;
+    std::cout << *((double*)(uint64_t*)&dd) << std::endl;
+
+    bool a = true;
+    std::cout << autoFitEndian<Endian::native>(a)<< std::endl;
+    std::cout << std::integral<bool> << std::endl;
 
     AYMMAP_DEBUG(1,2,3);
     AYMMAP_WARN(1,2,3);
