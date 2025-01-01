@@ -20,23 +20,12 @@ auto tt2() {
     return std::chrono::high_resolution_clock::now();
 }
 
-int main() {
-    std::cout << int(endian::native) << std::endl;
-    std::cout << int(endian::big) << std::endl;
-    std::cout << int(endian::little) << std::endl;
+auto ttd(auto d) {
+    return std::chrono::duration_cast<std::chrono::microseconds>(d).count();
+}
 
-    int max_i = 10000000;
-    int j = 0;
-    using itt = uint32_t;
-    {
-        auto start = tt2();
-        for (itt i = 0; i < max_i; ++i) {
-            j = detail::byteswap(i);
-        }
-        auto end = tt2();
-        auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
-        std::cout << "a Time taken: " << duration.count() << " microseconds" << std::endl;
-    }
+int main() {
+    std::cout << std::endl;
 
     AYMMAP_DEBUG(1,2,3);
     AYMMAP_WARN(1,2,3);

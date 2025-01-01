@@ -36,6 +36,8 @@ public:
 
     static constexpr auto npos = static_cast<size_type>(-1);
 
+    static_assert(sizeof(byte_type) == 1);
+
     BasicMMapFileBuf() = default;
     ~BasicMMapFileBuf() = default;
     explicit BasicMMapFileBuf(file_type && fi) noexcept : m_file(std::move(fi)), m_pos(0) {}
@@ -80,7 +82,18 @@ public:
 
     void flush() { m_file.flush(); }
 
-    view_type read(size_type length = npos) noexcept {
+    size_type read(pointer data, size_type length = npos) noexcept {
+        assert(data);
+        if (isEOF()) [[unlikely]] { return 0; }
+        if (m_pos + length > size()) {
+            length = size() - m_pos;
+        }
+        std::memcpy(data, m_file.data() + m_pos, length);
+        m_pos += length;
+        return length;
+    }
+
+    view_type readView(size_type length = npos) noexcept {
         if (isEOF()) [[unlikely]] { return view_type{}; }
         if (m_pos + length > size()) {
             length = size() - m_pos;
@@ -110,19 +123,22 @@ public:
         return isEOF() ? byte_type{0} : m_file.data()[m_pos++];
     }
 
-    size_type _write(const_pointer bytes, size_type length) noexcept {
-        static_assert(sizeof(byte_type) == 1);
-        std::memcpy(m_file.data() + m_pos, bytes, length);
+    size_type _write(const_pointer data, size_type length) noexcept {
+        std::memcpy(m_file.data() + m_pos, data, length);
         m_pos += length;
     }
 
-    size_type write(const_pointer bytes, size_type length) noexcept {
+    size_type write(const_pointer data, size_type length) noexcept {
         if (isEOF()) [[unlikely]] { return 0; }
         if (m_pos + length > size()) {
             length = size() - m_pos;
         }
-        _write(bytes, length);
+        _write(data, length);
         return length;
+    }
+
+    size_type writeView(view_type view) noexcept {
+        return write(view.data(), view.size());
     }
 
     size_type writeByte(byte_type byte) noexcept {
