@@ -19,7 +19,7 @@
 #include <bit>
 
 namespace aymmap {
-using std::endian;
+using Endian = std::endian;
 
 namespace detail {
 inline constexpr uint8_t byteswap(uint8_t n) noexcept { return n; }
@@ -45,9 +45,9 @@ inline constexpr T byteswap(T n) noexcept {
 }
 }
 
-template <endian tgt, typename T>
+template <Endian tgt, typename T>
 inline constexpr T autoFitEndian(T n) noexcept {
-    if constexpr (tgt == endian::native) {
+    if constexpr (tgt == Endian::native) {
         return n;
     } else {
         return detail::byteswap(n);

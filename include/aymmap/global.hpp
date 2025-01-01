@@ -79,6 +79,12 @@ enum class AdviceFlag {
     kWillNeed,
     kDontNeed,
 };
+
+enum class BufferPos {
+    kBeg = 0,
+    kEnd,
+    kCur
+};
 }
 
 #undef _AYMMAP_DECL_ENUM_OP

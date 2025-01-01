@@ -36,12 +36,6 @@ public:
 
     static constexpr auto npos = static_cast<size_type>(-1);
 
-    enum class BufPos {
-        kBeg = 0,
-        kEnd,
-        kCur
-    };
-
     BasicMMapFileBuf() = default;
     ~BasicMMapFileBuf() = default;
     explicit BasicMMapFileBuf(file_type && fi) noexcept : m_file(std::move(fi)), m_pos(0) {}
@@ -67,15 +61,15 @@ public:
     size_type tell() const noexcept { return m_pos; }
     size_type remaining() const noexcept { return tell() < size() ? size() - tell() : 0; }
 
-    size_type seek(off_type pos, BufPos whence = BufPos::kCur) noexcept {
+    size_type seek(off_type pos, BufferPos whence = BufferPos::kCur) noexcept {
         switch (whence) {
-        case BufPos::kBeg:
+        case BufferPos::kBeg:
             m_pos = pos;
             break;
-        case BufPos::kEnd:
+        case BufferPos::kEnd:
             m_pos = size() + pos;
             break;
-        case BufPos::kCur:
+        case BufferPos::kCur:
         default:
             m_pos += pos;
             break;
@@ -117,6 +111,7 @@ public:
     }
 
     size_type _write(const_pointer bytes, size_type length) noexcept {
+        static_assert(sizeof(byte_type) == 1);
         std::memcpy(m_file.data() + m_pos, bytes, length);
         m_pos += length;
     }
