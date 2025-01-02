@@ -1,5 +1,5 @@
 /**
- * Copyright 2024 NoEvaa
+ * Copyright 2025 NoEvaa
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -42,7 +42,8 @@ public:
 
     BasicMMapStream() = default;
     ~BasicMMapStream() = default;
-    explicit BasicMMapStream(buffer_type && buf) noexcept : m_buf(std::move(buf)), m_st(Status::kOk) {}
+    explicit BasicMMapStream(buffer_type && buf) noexcept
+        : m_buf(std::move(buf)), m_stat(Status::kOk) {}
     BasicMMapStream(BasicMMapStream && ot) noexcept { _move(std::move(ot)); }
     BasicMMapStream & operator=(BasicMMapStream && ot) noexcept {
         _move(std::move(ot));
@@ -54,8 +55,8 @@ public:
     void pushBuffer(buffer_type && buf) noexcept { m_buf = std::move(buf); } 
     buffer_type popBuffer() noexcept { return std::exchange(m_buf, buffer_type{}); }
 
-    void setStatus(Status st) noexcept { m_st = st; }
-    Status getStatus() const noexcept { return m_st; }
+    void setStatus(Status stat = Status::kOk) noexcept { m_stat = stat; }
+    Status getStatus() const noexcept { return m_stat; }
 
     size_type read(pointer data, size_type length = npos) noexcept {
         if (_check()) [[unlikely]] { return 0; }
@@ -66,6 +67,8 @@ public:
         if (_check()) [[unlikely]] { return 0; }
         return m_buf.write(data, length);
     }
+
+    void flush() { m_buf.flush(); }
 
     template <std::integral T>
     BasicMMapStream & operator>>(T & i) {
@@ -89,19 +92,11 @@ public:
         return *this;
     }
 
-    template <std::integral T>
-    BasicMMapStream & operator<<(T i) {
-        i = autoFitEndian<_endian>(i);
-        if (write((pointer)&i, sizeof(T)) != sizeof(T)) {
-            setStatus(Status::kWriteFailed);
-        }
-        return *this;
-    }
-
-    template <std::floating_point T>
-    BasicMMapStream & operator<<(T f) {
-        f = autoFitEndian<_endian>(f);
-        if (write((pointer)&f, sizeof(T)) != sizeof(T)) {
+    template <typename T>
+    requires std::integral<T> || std::floating_point<T>
+    BasicMMapStream & operator<<(T n) {
+        n = autoFitEndian<_endian>(n);
+        if (write((pointer)&n, sizeof(T)) != sizeof(T)) {
             setStatus(Status::kWriteFailed);
         }
         return *this;
@@ -115,8 +110,8 @@ public:
 
 private:
     void _move(BasicMMapStream && ot) noexcept {
-        m_buf = std::move(ot.m_buf);
-        m_st  = std::exchange(ot.m_st, Status::kOk);
+        m_buf  = std::move(ot.m_buf);
+        m_stat = std::exchange(ot.m_stat, Status::kOk);
     }
 
     bool _check() noexcept {
@@ -129,7 +124,7 @@ private:
 
 private:
     buffer_type m_buf;
-    Status      m_st = Status::kOk;
+    Status      m_stat = Status::kOk;
 };
 }
 

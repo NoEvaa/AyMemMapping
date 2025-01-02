@@ -58,7 +58,7 @@ public:
         return std::exchange(m_file, file_type{});
     }
 
-    bool isEOF() const noexcept { return m_pos < size(); }
+    bool isEOF() const noexcept { return m_pos >= size(); }
     size_type size() const noexcept { return m_file.size(); }
     size_type tell() const noexcept { return m_pos; }
     size_type remaining() const noexcept { return tell() < size() ? size() - tell() : 0; }
@@ -126,6 +126,7 @@ public:
     size_type _write(const_pointer data, size_type length) noexcept {
         std::memcpy(m_file.data() + m_pos, data, length);
         m_pos += length;
+        return length;
     }
 
     size_type write(const_pointer data, size_type length) noexcept {
@@ -133,8 +134,7 @@ public:
         if (m_pos + length > size()) {
             length = size() - m_pos;
         }
-        _write(data, length);
-        return length;
+        return _write(data, length);
     }
 
     size_type writeView(view_type view) noexcept {

@@ -15,6 +15,7 @@
  */
 #pragma once
 
+#include <cstdint>
 #include <type_traits>
 #include <concepts>
 #include <bit>
@@ -29,16 +30,14 @@ inline constexpr uint32_t byteswap(uint32_t n) noexcept {
     n = ((n << 8) & 0xff00ff00) | ((n >> 8) & 0xff00ff);
     return (n << 16) | (n >> 16);
 }
+
 inline constexpr uint64_t byteswap(uint64_t n) noexcept {
-    return ((n & UINT64_C(0x00000000000000ff)) << 56)
-        | ((n & UINT64_C(0x000000000000ff00)) << 40)
-        | ((n & UINT64_C(0x0000000000ff0000)) << 24)
-        | ((n & UINT64_C(0x00000000ff000000)) << 8)
-        | ((n & UINT64_C(0x000000ff00000000)) >> 8)
-        | ((n & UINT64_C(0x0000ff0000000000)) >> 24)
-        | ((n & UINT64_C(0x00ff000000000000)) >> 40)
-        | ((n & UINT64_C(0xff00000000000000)) >> 56);
+    n = ((n << 8)  & UINT64_C(0xff00ff00ff00ff00)) | ((n >> 8)  & UINT64_C(0xff00ff00ff00ff));
+    n = ((n << 16) & UINT64_C(0xffff0000ffff0000)) | ((n >> 16) & UINT64_C(0xffff0000ffff));
+    return (n << 32) | (n >> 32);
 }
+
+inline constexpr bool byteswap(bool n) noexcept { return n; }
 
 template <std::integral T>
 inline constexpr T byteswap(T n) noexcept {

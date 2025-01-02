@@ -241,7 +241,7 @@ template <>
 bool MemMapTraits::remap(data_type & d, size_type new_length) {
     bool b_result = true;
     auto access   = AccessFlag::kDefault;
-    errno_type file_resize_err{0};
+    errno_t file_resize_err{0};
 
     if (d.file_handle_ != INVALID_HANDLE_VALUE) {
         access = detail::_getOldAccessFlag(d);
