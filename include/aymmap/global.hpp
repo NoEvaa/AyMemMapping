@@ -30,6 +30,10 @@
 #define _AYMMAP_WIN
 #endif
 
+#define _AYMMAP_DISABLE_CLASS_COPY(_class)                                                         \
+    _class(_class const &) = delete;                                                               \
+    _class & operator=(_class const &) = delete;
+
 #define _AYMMAP_DECL_ENUM_OP(_enum_tp)                                                             \
 inline constexpr _enum_tp operator|(_enum_tp lhs, _enum_tp rhs) {                                  \
     return static_cast<_enum_tp>(                                                                  \

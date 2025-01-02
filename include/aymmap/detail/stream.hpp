@@ -1,5 +1,5 @@
 /**
- * Copyright 2024 NoEvaa
+ * Copyright 2025 NoEvaa
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,14 +16,15 @@
 #pragma once
 
 #include <algorithm>
-#include <type_traits>
 #include <concepts>
 
+#include "aymmap/global.hpp"
 #include "aymmap/detail/endian.hpp"
 
 namespace aymmap {
 template <Endian _endian, typename BufT>
 class BasicMMapStream {
+    using self_type = BasicMMapStream;
 public:
     using buffer_type   = BufT;
     using size_type     = typename buffer_type::size_type;
@@ -32,7 +33,7 @@ public:
     using pointer       = typename buffer_type::pointer;
     using const_pointer = typename buffer_type::const_pointer;
 
-    using buffer_type::npos;
+    static constexpr auto npos = buffer_type::npos;
 
     enum class Status {
         kOk = 0,
@@ -42,24 +43,32 @@ public:
 
     BasicMMapStream() = default;
     ~BasicMMapStream() = default;
-    explicit BasicMMapStream(buffer_type && buf) noexcept : m_buf(std::move(buf)), m_st(Status::kOk) {}
+    explicit BasicMMapStream(buffer_type && buf) noexcept
+        : m_buf(std::move(buf)), m_stat(Status::kOk) {}
     BasicMMapStream(BasicMMapStream && ot) noexcept { _move(std::move(ot)); }
     BasicMMapStream & operator=(BasicMMapStream && ot) noexcept {
         _move(std::move(ot));
         return *this;
     }
 
-    buffer_type & getBuffer() noexcept { return m_buf; }
-    buffer_type const & getBuffer() const noexcept { return m_buf; }
-    void pushBuffer(buffer_type && buf) noexcept { m_buf = std::move(buf); } 
-    buffer_type popBuffer() noexcept { return std::exchange(m_buf, buffer_type{}); }
+    buffer_type & buffer() noexcept { return m_buf; }
+    buffer_type const & buffer() const noexcept { return m_buf; }
+    buffer_type setBuffer(buffer_type && buf = buffer_type{}) noexcept {
+        setStatus();
+        return std::exchange(m_buf, buf);
+    }
 
-    void setStatus(Status st) noexcept { m_st = st; }
-    Status getStatus() const noexcept { return m_st; }
+    Status status() const noexcept { return m_stat; }
+    void setStatus(Status stat = Status::kOk) noexcept { m_stat = stat; }
 
     size_type read(pointer data, size_type length = npos) noexcept {
         if (_check()) [[unlikely]] { return 0; }
         return m_buf.read(data, length);
+    }
+
+    size_type readByte(byte_type & data) noexcept {
+        if (_check()) [[unlikely]] { return 0; }
+        return m_buf.readByte(data);
     }
 
     size_type write(const_pointer data, size_type length) noexcept {
@@ -67,8 +76,15 @@ public:
         return m_buf.write(data, length);
     }
 
+    size_type writeByte(byte_type data) noexcept {
+        if (_check()) [[unlikely]] { return 0; }
+        return m_buf.writeByte(data);
+    }
+
+    void flush() noexcept { m_buf.flush(); }
+
     template <std::integral T>
-    BasicMMapStream & operator>>(T & i) {
+    self_type & operator>>(T & i) {
         if (read(reinterpret_cast<pointer>(&i), sizeof(T)) != sizeof(T)) {
             setStatus(Status::kReadFailed);
             i = T{0};
@@ -79,7 +95,7 @@ public:
     }
 
     template <std::floating_point T>
-    BasicMMapStream & operator>>(T & f) {
+    self_type & operator>>(T & f) {
         if (read(reinterpret_cast<pointer>(&f), sizeof(T)) != sizeof(T)) {
             setStatus(Status::kReadFailed);
             f = T{0.0};
@@ -89,47 +105,37 @@ public:
         return *this;
     }
 
-    template <std::integral T>
-    BasicMMapStream & operator<<(T i) {
-        i = autoFitEndian<_endian>(i);
-        if (write((pointer)&i, sizeof(T)) != sizeof(T)) {
+    template <typename T>
+    requires std::integral<T> || std::floating_point<T>
+    self_type & operator<<(T n) {
+        n = autoFitEndian<_endian>(n);
+        if (write((pointer)&n, sizeof(T)) != sizeof(T)) {
             setStatus(Status::kWriteFailed);
         }
         return *this;
     }
 
-    template <std::floating_point T>
-    BasicMMapStream & operator<<(T f) {
-        f = autoFitEndian<_endian>(f);
-        if (write((pointer)&f, sizeof(T)) != sizeof(T)) {
-            setStatus(Status::kWriteFailed);
-        }
-        return *this;
-    }
-
-    template <typename Fn, typename = std::invoke_result_t<Fn, BasicMMapStream &>>
-    BasicMMapStream & operator<<(Fn __pf) {
-        __pf(*this);
-        return *this;
-    }
+    self_type & operator<<(self_type & (*_pfn)(self_type &)) { return _pfn(*this); }
+    self_type & operator>>(self_type & (*_pfn)(self_type &)) { return _pfn(*this); }
+    self_type & operator<<(std::function<self_type &(self_type &)> _fn) { return _fn(*this); }
+    self_type & operator>>(std::function<self_type &(self_type &)> _fn) { return _fn(*this); }
 
 private:
     void _move(BasicMMapStream && ot) noexcept {
-        m_buf = std::move(ot.m_buf);
-        m_st  = std::exchange(ot.m_st, Status::kOk);
+        m_buf  = std::move(ot.m_buf);
+        m_stat = std::exchange(ot.m_stat, Status::kOk);
     }
 
     bool _check() noexcept {
-        if (getStatus() != Status::kOk) [[unlikely]] { return true; }
+        if (status() != Status::kOk) [[unlikely]] { return true; }
         return false;
     }
 
-    BasicMMapStream(BasicMMapStream const &) = delete;
-    BasicMMapStream & operator=(BasicMMapStream const &) = delete;
+    _AYMMAP_DISABLE_CLASS_COPY(BasicMMapStream)
 
 private:
     buffer_type m_buf;
-    Status      m_st = Status::kOk;
+    Status      m_stat = Status::kOk;
 };
 }
 

@@ -1,5 +1,5 @@
 /**
- * Copyright 2024 NoEvaa
+ * Copyright 2025 NoEvaa
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,7 +19,8 @@
 #include "aymmap/file/buffer.hpp"
 
 namespace aymmap {
-template <Endian _endian = Endian::big>
-using MMapFileStream = BasicMMapStream<_endian, MMapFileBuf>;
+template <Endian _endian = Endian::big, typename BufT = MMapFileBuf>
+using BasicMMapFileStream = BasicMMapStream<_endian, BufT>;
+using MMapFileStream = BasicMMapFileStream<>;
 }
 
