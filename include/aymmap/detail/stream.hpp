@@ -58,7 +58,7 @@ public:
         return std::exchange(m_buf, buf);
     }
 
-    Status getStatus() const noexcept { return m_stat; }
+    Status status() const noexcept { return m_stat; }
     void setStatus(Status stat = Status::kOk) noexcept { m_stat = stat; }
 
     size_type read(pointer data, size_type length = npos) noexcept {
@@ -66,9 +66,19 @@ public:
         return m_buf.read(data, length);
     }
 
+    size_type readByte(byte_type & data) noexcept {
+        if (_check()) [[unlikely]] { return 0; }
+        return m_buf.readByte(data);
+    }
+
     size_type write(const_pointer data, size_type length) noexcept {
         if (_check()) [[unlikely]] { return 0; }
         return m_buf.write(data, length);
+    }
+
+    size_type writeByte(byte_type data) noexcept {
+        if (_check()) [[unlikely]] { return 0; }
+        return m_buf.writeByte(data);
     }
 
     void flush() noexcept { m_buf.flush(); }
@@ -117,7 +127,7 @@ private:
     }
 
     bool _check() noexcept {
-        if (getStatus() != Status::kOk) [[unlikely]] { return true; }
+        if (status() != Status::kOk) [[unlikely]] { return true; }
         return false;
     }
 
