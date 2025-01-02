@@ -93,7 +93,7 @@ public:
     bool isAnon() const noexcept { return isMapped() && _isAnon(); }
     bool empty() const noexcept { return size() == 0; }
 
-    size_type size() const noexcept { return m_length; }
+    size_type     size() const noexcept { return m_length; }
     pointer       data() noexcept { return m_p_byte; }
     const_pointer data() const noexcept { return m_p_byte; }
     const_pointer c_str() const noexcept { return m_p_byte; }
@@ -132,8 +132,7 @@ private:
     errno_t _mapFileImpl(AccessFlag, size_type, size_type);
     errno_t _fileMap(handle_type, AccessFlag, bool, size_type, size_type);
 
-    BasicMMapFile(BasicMMapFile const &) = delete;
-    BasicMMapFile & operator=(BasicMMapFile const &) = delete;
+    _AYMMAP_DISABLE_CLASS_COPY(BasicMMapFile)
 
 private:
     data_type m_data;

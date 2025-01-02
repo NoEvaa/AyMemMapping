@@ -47,15 +47,11 @@ public:
         return *this;
     }
 
-    file_type & getFile() noexcept { return m_file; }
-    file_type const & getFile() const noexcept { return m_file; }
-    void pushFile(file_type && fi) noexcept {
-        m_file = std::move(fi);
-        m_pos  = 0;
-    } 
-    file_type popFile() noexcept {
+    file_type & file() noexcept { return m_file; }
+    file_type const & file() const noexcept { return m_file; }
+    file_type setFile(file_type && fi = file_type{}) noexcept {
         m_pos = 0;
-        return std::exchange(m_file, file_type{});
+        return std::exchange(m_file, fi);
     }
 
     bool isEOF() const noexcept { return m_pos >= size(); }
@@ -80,17 +76,24 @@ public:
         return m_pos;
     }
 
-    void flush() { m_file.flush(); }
+    bool flush() noexcept { return m_file.flush() == kEnoOk; }
 
     size_type read(pointer data, size_type length = npos) noexcept {
         assert(data);
         if (isEOF()) [[unlikely]] { return 0; }
-        if (m_pos + length > size()) {
-            length = size() - m_pos;
-        }
+        if (size() - m_pos < length) { length = size() - m_pos; }
         std::memcpy(data, m_file.data() + m_pos, length);
         m_pos += length;
         return length;
+    }
+
+    size_type readByte(byte_type & data) noexcept {
+        if (isEOF()) [[unlikely]] {
+            data = byte_type{0};
+            return 0;
+        }
+        data = m_file.data()[m_pos++];
+        return 1;
     }
 
     view_type readView(size_type length = npos) noexcept {
@@ -119,10 +122,6 @@ public:
         return view_type{p, length};
     }
 
-    byte_type readByte() noexcept {
-        return isEOF() ? byte_type{0} : m_file.data()[m_pos++];
-    }
-
     size_type _write(const_pointer data, size_type length) noexcept {
         std::memcpy(m_file.data() + m_pos, data, length);
         m_pos += length;
@@ -137,24 +136,23 @@ public:
         return _write(data, length);
     }
 
-    size_type writeView(view_type view) noexcept {
-        return write(view.data(), view.size());
-    }
-
     size_type writeByte(byte_type byte) noexcept {
         if (isEOF()) [[unlikely]] { return 0; }
         m_file.data()[m_pos++] = byte;
         return 1;
     }
-    
+
+    size_type writeView(view_type view) noexcept {
+        return write(view.data(), view.size());
+    }
+
 private:
     void _move(BasicMMapFileBuf && ot) noexcept {
         m_file = std::move(ot.m_file);
         m_pos  = std::exchange(ot.m_pos, 0);
     }
 
-    BasicMMapFileBuf(BasicMMapFileBuf const &) = delete;
-    BasicMMapFileBuf & operator=(BasicMMapFileBuf const &) = delete;
+    _AYMMAP_DISABLE_CLASS_COPY(BasicMMapFileBuf)
 
 private:
     file_type m_file;
