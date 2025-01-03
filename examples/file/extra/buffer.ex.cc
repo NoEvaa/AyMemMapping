@@ -48,7 +48,7 @@ void bufWrite() {
 
 void bufRead() {
     MMapFileBuf mmfb;
-    mmfb.file().map("test.txt", AccessFlag::kReadOnly);
+    mmfb.map("test.txt", AccessFlag::kReadOnly);
 
     assert(mmfb.size() == 100);
     assert(mmfb.tell() == 0);

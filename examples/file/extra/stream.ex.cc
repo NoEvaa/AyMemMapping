@@ -51,11 +51,10 @@ MMapFileStream & endl(MMapFileStream & mmfs) {
 }
 
 struct ReadLine {
-    MMapFileStream & operator()(MMapFileStream & mmfs) {
+    void operator()(MMapFileStream & mmfs) {
         auto sv = mmfs.buffer().readline();
         std::cout << "l size: " << sv.size() << std::endl;
         std::cout << "l: " << sv << std::endl;
-        return mmfs;
     }
 };
 
@@ -85,7 +84,7 @@ void streamWrite() {
 
 void streamRead() {
     MMapFileStream mmfs;
-    mmfs.buffer().file().map("test.txt", AccessFlag::kReadOnly);
+    mmfs.map("test.txt", AccessFlag::kReadOnly);
 
     int i;
     double f;
@@ -101,9 +100,8 @@ void streamRead() {
     mmfs >> ReadLine();
 
     std::string_view sv;
-    mmfs >> [&sv](MMapFileStream & _mmfs) -> MMapFileStream & { 
+    mmfs >> [&sv](MMapFileStream & _mmfs) { 
         sv = _mmfs.buffer().readline();
-        return _mmfs;
     };
     std::cout << "l: " << sv << std::endl;
 

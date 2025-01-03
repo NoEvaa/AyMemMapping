@@ -105,7 +105,7 @@ MemMapTraits::size_type MemMapTraits::fileSize(handle_type handle) {
         AYMMAP_DEBUG("Failed to query the file size.");
         return 0U;
     }
-    return static_cast<std::size_t>(st.st_size);
+    return static_cast<size_type>(st.st_size);
 }
 
 template <>

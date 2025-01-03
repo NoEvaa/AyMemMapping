@@ -35,7 +35,7 @@
 #endif
 
 #ifdef _DEBUG
-#define _AYMMAP_LOG_DEBUG(...) aymmap::detail::logOutput(__VA_ARGS__)
+#define _AYMMAP_LOG_DEBUG(...) _AYMMAP_LOG(__VA_ARGS__)
 #else
 #define _AYMMAP_LOG_DEBUG(...) static_cast<void>(0)
 #endif

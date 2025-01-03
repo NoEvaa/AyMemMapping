@@ -15,8 +15,10 @@
  */
 #pragma once
 
-#include <algorithm>
+#include <cstddef>
 #include <concepts>
+#include <type_traits>
+#include <algorithm>
 
 #include "aymmap/global.hpp"
 #include "aymmap/detail/endian.hpp"
@@ -61,23 +63,33 @@ public:
     Status status() const noexcept { return m_stat; }
     void setStatus(Status stat = Status::kOk) noexcept { m_stat = stat; }
 
+    template <typename... Ts>
+    auto map(Ts... args) {
+        setStatus();
+        return m_buf.map(std::forward<Ts>(args)...);
+    }
+
+    size_type remaining() const noexcept {
+        return m_buf.tell() < m_buf.size() ? m_buf.size() - m_buf.tell() : 0;
+    }
+
     size_type read(pointer data, size_type length = npos) noexcept {
-        if (_check()) [[unlikely]] { return 0; }
+        if (!_check()) [[unlikely]] { return 0; }
         return m_buf.read(data, length);
     }
 
     size_type readByte(byte_type & data) noexcept {
-        if (_check()) [[unlikely]] { return 0; }
+        if (!_check()) [[unlikely]] { return 0; }
         return m_buf.readByte(data);
     }
 
     size_type write(const_pointer data, size_type length) noexcept {
-        if (_check()) [[unlikely]] { return 0; }
+        if (!_check()) [[unlikely]] { return 0; }
         return m_buf.write(data, length);
     }
 
     size_type writeByte(byte_type data) noexcept {
-        if (_check()) [[unlikely]] { return 0; }
+        if (!_check()) [[unlikely]] { return 0; }
         return m_buf.writeByte(data);
     }
 
@@ -115,10 +127,13 @@ public:
         return *this;
     }
 
-    self_type & operator<<(self_type & (*_pfn)(self_type &)) { return _pfn(*this); }
-    self_type & operator>>(self_type & (*_pfn)(self_type &)) { return _pfn(*this); }
-    self_type & operator<<(std::function<self_type &(self_type &)> _fn) { return _fn(*this); }
-    self_type & operator>>(std::function<self_type &(self_type &)> _fn) { return _fn(*this); }
+    self_type & operator<<(std::nullptr_t) { return *this; }
+    self_type & operator>>(std::nullptr_t & _ptr) { _ptr = nullptr; return *this; }
+
+    template <typename Fn, typename = std::invoke_result_t<Fn, self_type &>>
+    self_type & operator<<(Fn _fn) { _fn(*this); return *this; }
+    template <typename Fn, typename = std::invoke_result_t<Fn, self_type &>>
+    self_type & operator>>(Fn _fn) { _fn(*this); return *this; }
 
 private:
     void _move(BasicMMapStream && ot) noexcept {
@@ -127,8 +142,8 @@ private:
     }
 
     bool _check() noexcept {
-        if (status() != Status::kOk) [[unlikely]] { return true; }
-        return false;
+        if (status() != Status::kOk) [[unlikely]] { return false; }
+        return true;
     }
 
     _AYMMAP_DISABLE_CLASS_COPY(BasicMMapStream)

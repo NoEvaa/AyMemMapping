@@ -54,25 +54,19 @@ public:
         return std::exchange(m_file, fi);
     }
 
+    template <typename... Ts>
+    auto map(Ts... args) {
+        m_pos = 0;
+        return m_file.map(std::forward<Ts>(args)...);
+    }
+
     bool isEOF() const noexcept { return m_pos >= size(); }
     size_type size() const noexcept { return m_file.size(); }
     size_type tell() const noexcept { return m_pos; }
     size_type remaining() const noexcept { return tell() < size() ? size() - tell() : 0; }
 
-    size_type seek(off_type pos, BufferPos whence = BufferPos::kCur) noexcept {
-        switch (whence) {
-        case BufferPos::kBeg:
-            m_pos = pos;
-            break;
-        case BufferPos::kEnd:
-            m_pos = size() + pos;
-            break;
-        case BufferPos::kCur:
-        default:
-            m_pos += pos;
-            break;
-        }
-        if (m_pos > size()) { m_pos = size(); }
+    size_type seek(off_type offset, BufferPos whence = BufferPos::kCur) noexcept {
+        m_pos = _getPos(offset, whence);
         return m_pos;
     }
 
@@ -98,9 +92,7 @@ public:
 
     view_type readView(size_type length = npos) noexcept {
         if (isEOF()) [[unlikely]] { return view_type{}; }
-        if (m_pos + length > size()) {
-            length = size() - m_pos;
-        }
+        if (size() - m_pos < length) { length = size() - m_pos; }
         auto p = m_file.data() + m_pos;
         m_pos += length;
         return view_type{p, length};
@@ -123,6 +115,7 @@ public:
     }
 
     size_type _write(const_pointer data, size_type length) noexcept {
+        assert(data);
         std::memcpy(m_file.data() + m_pos, data, length);
         m_pos += length;
         return length;
@@ -130,9 +123,7 @@ public:
 
     size_type write(const_pointer data, size_type length) noexcept {
         if (isEOF()) [[unlikely]] { return 0; }
-        if (m_pos + length > size()) {
-            length = size() - m_pos;
-        }
+        if (size() - m_pos < length) { length = size() - m_pos; }
         return _write(data, length);
     }
 
@@ -150,6 +141,29 @@ private:
     void _move(BasicMMapFileBuf && ot) noexcept {
         m_file = std::move(ot.m_file);
         m_pos  = std::exchange(ot.m_pos, 0);
+    }
+
+    size_type _getPos(off_type offset, BufferPos whence) noexcept {
+        switch (whence) {
+        case BufferPos::kBeg:
+            if (offset <= 0) [[unlikely]] { return 0; }
+            if (offset > size()) { return size(); }
+            return (size_type)offset;
+        case BufferPos::kEnd:
+            if (offset >= 0) [[unlikely]] { return size(); }
+            if (-offset >= size()) { return 0; }
+            return size() + offset;
+        case BufferPos::kCur:
+            [[fallthrough]];
+        default:
+            if (offset <= 0) {
+                if (-offset >= m_pos) { return 0; }
+                return m_pos + offset;
+            }
+            if (m_pos >= size()) [[unlikely]] { return size(); }
+            if (size() - m_pos <= offset) { return size(); }
+            return m_pos + offset;
+        }
     }
 
     _AYMMAP_DISABLE_CLASS_COPY(BasicMMapFileBuf)
