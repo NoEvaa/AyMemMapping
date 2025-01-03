@@ -306,6 +306,7 @@ bool MemMapTraits::unlock(void * addr, size_type length) {
 template <>
 bool MemMapTraits::protect(void * addr, size_type length, AccessFlag access) {
     DWORD prot{};
+    DWORD prot_old{};
 
     if (bool(access & AccessFlag::kNoAccess)) { prot = PAGE_NOACCESS; }
     else if (bool(access & AccessFlag::kCopy)) { prot = PAGE_WRITECOPY; }
@@ -313,7 +314,7 @@ bool MemMapTraits::protect(void * addr, size_type length, AccessFlag access) {
     else { prot = PAGE_READONLY; }
     if (bool(access & AccessFlag::kExec)) { prot <<= 4; }
 
-    return ::VirtualProtect(addr, length, prot, 0);
+    return ::VirtualProtect(addr, length, prot, &prot_old);
 }
 
 template <>
